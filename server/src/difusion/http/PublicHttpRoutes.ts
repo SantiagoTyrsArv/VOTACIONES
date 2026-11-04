@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import fastifyStatic from '@fastify/static';
+import { registerStaticFiles } from '../../infra/StaticFiles.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { AdmissionController } from '../admission/AdmissionController.js';
 import { SseConnection } from '../connections/SseConnection.js';
@@ -98,7 +98,7 @@ export class PublicHttpRoutes {
 
     http.get('/publico/stats', async () => ({ ...this.deps.metrics.snapshot(), ...this.deps.extraStats() }));
 
-    await this.registerStaticPage(http);
+    this.registerStaticPage(http);
   }
 
   private parse(query: SubscriptionQuery, lastEventId: string | string[] | undefined, reply: FastifyReply): SubscriptionRequest | null {
@@ -118,12 +118,12 @@ export class PublicHttpRoutes {
   }
 
   /** Sirve publico/dist si existe (después de "npm run build"). */
-  private async registerStaticPage(http: FastifyInstance): Promise<void> {
+  private registerStaticPage(http: FastifyInstance): void {
     const root = this.deps.publicDir ?? fileURLToPath(new URL('../../../../publico/dist', import.meta.url));
     if (!existsSync(root)) {
       http.log.warn(`No se encontró la página pública en ${root}; ejecute "npm run build -w publico"`);
       return;
     }
-    await http.register(fastifyStatic, { root, prefix: '/publico/', decorateReply: false });
+    registerStaticFiles(http, root, '/publico/');
   }
 }

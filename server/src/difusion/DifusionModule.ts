@@ -110,6 +110,8 @@ export class DifusionModule implements AppModule {
     this.wsGateway.register(context.upgrades);
   }
 
+  stats() { return this.metrics.snapshot(); }
+
   async start(): Promise<void> {
     this.eventLoop.start();
     this.context.health.on('change', (change) => void this.onHealthChange(change));

@@ -1,0 +1,5 @@
+
+> votaciones-persona-c@0.1.0 smoke
+> tsx scripts/smoke.ts
+
+{"replicas":["c-local-1","c-local-2"],"case":"E14-176-0042-03","take":["TAKEN","BUSY"],"resolution":"PENDING_A","release":"RELEASED"}

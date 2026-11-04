@@ -1,0 +1,18 @@
+{
+  "browser": "Chrome headless",
+  "replicas": [
+    "c-local-1",
+    "c-local-2"
+  ],
+  "checks": [
+    "Ana toma un caso desde la réplica 1",
+    "Luis ve la asignación desde la réplica 2 y no puede tomarla",
+    "La resolución pendiente no se presenta como aplicada",
+    "Página pública de B por SSE, WebSocket y polling detrás del mismo balanceador",
+    "El tablero suma tres conexiones de C y dos públicas, con métricas de ambas réplicas",
+    "Sin desbordamiento horizontal a 390 px",
+    "Aviso de 8 minutos comprobado con reloj de navegador adelantado",
+    "Sin errores JavaScript de la aplicación"
+  ],
+  "date": "2026-11-04T02:16:36.468Z"
+}

@@ -12,6 +12,18 @@
       "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./verificacion": {
+      "source": "./src/verificacion/contracts.ts",
+      "development": "./src/verificacion/contracts.ts",
+      "types": "./dist/verificacion/contracts.d.ts",
+      "default": "./dist/verificacion/contracts.js"
+    },
+    "./verificacion/proposals": {
+      "source": "./src/verificacion/proposals.ts",
+      "development": "./src/verificacion/proposals.ts",
+      "types": "./dist/verificacion/proposals.d.ts",
+      "default": "./dist/verificacion/proposals.js"
     }
   },
   "scripts": {
@@ -22,5 +34,8 @@
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
   }
 }

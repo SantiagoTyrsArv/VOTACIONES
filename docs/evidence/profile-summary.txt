@@ -1,0 +1,5 @@
+
+> votaciones-persona-c@0.1.0 carga:plan
+> node carga/generate-profile.mjs
+
+{"originals":6400,"first40Minutes":3520,"percentage":55,"burstPerMinute":300,"corrections":180,"replays":448,"replayPercent":7,"totalEvents":7028}

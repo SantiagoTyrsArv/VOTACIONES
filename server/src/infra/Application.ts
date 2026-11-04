@@ -1,7 +1,8 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Registry, collectDefaultMetrics } from 'prom-client';
 import type { AppConfig } from '../config/AppConfig.js';
-import type { AppModule, ModuleContext } from './AppModule.js';
+import { timingSafeEqual } from 'node:crypto';
+import type { AppModule, MetricsAuthorizer, ModuleContext } from './AppModule.js';
 import { RedisConnections } from './RedisConnections.js';
 import { RedisHealthMonitor, withTimeout } from './RedisHealthMonitor.js';
 import { UpgradeRouter } from './UpgradeRouter.js';
@@ -16,19 +17,38 @@ export class Application {
   private readonly health: RedisHealthMonitor;
   private readonly upgrades = new UpgradeRouter();
   private readonly metrics = new Registry();
+  private readonly metricsAuthorizers: MetricsAuthorizer[] = [];
 
   constructor(
     private readonly config: AppConfig,
     private readonly modules: AppModule[],
   ) {
-    this.http = Fastify({ logger: { level: config.logLevel }, disableRequestLogging: true });
+    this.http = Fastify({
+      logger: {
+        level: config.logLevel,
+        redact: ['req.headers.authorization', 'req.headers.cookie', 'credential'],
+      },
+      disableRequestLogging: true,
+      bodyLimit: 32768,
+    });
     this.redis = new RedisConnections(config.redisUrl, this.http.log);
     this.health = new RedisHealthMonitor(this.redis.commands);
     this.metrics.setDefaultLabels({ instance: config.instanceId });
     collectDefaultMetrics({ register: this.metrics });
   }
 
-  async start(): Promise<void> {
+  async initialize(): Promise<FastifyInstance> {
+    this.http.addHook('onRequest', async (_request, reply) => {
+      reply.header('X-Instance-Id', this.config.instanceId);
+      reply.header('Cache-Control', 'no-store');
+    });
+    this.http.addHook('preClose', async () => {
+      this.health.stop();
+      for (const module of [...this.modules].reverse()) await module.stop?.();
+    });
+    this.http.addHook('onClose', async () => {
+      await this.redis.close();
+    });
     this.registerPlatformRoutes();
     const context: ModuleContext = {
       config: this.config,
@@ -37,6 +57,7 @@ export class Application {
       redis: this.redis,
       health: this.health,
       metrics: this.metrics,
+      authorizeMetrics: (authorizer) => this.metricsAuthorizers.push(authorizer),
     };
     for (const module of this.modules) {
       await module.register(context);
@@ -47,9 +68,16 @@ export class Application {
     await this.connectRedisWithoutBlocking();
     for (const module of this.modules) await module.start?.();
     await this.health.start();
+    return this.http;
+  }
 
-    await this.http.listen({ port: this.config.port, host: '::' });
-    this.http.log.info(`Instancia ${this.config.instanceId} escuchando en el puerto ${this.config.port}`);
+  async start(): Promise<void> {
+    await this.initialize();
+
+    await this.http.listen({ port: this.config.port, host: this.config.string('HOST', '::') });
+    this.http.log.info(
+      `Instancia ${this.config.instanceId} escuchando en el puerto ${this.config.port}`,
+    );
   }
 
   get address() {
@@ -57,10 +85,7 @@ export class Application {
   }
 
   async stop(): Promise<void> {
-    this.health.stop();
-    for (const module of [...this.modules].reverse()) await module.stop?.();
     await this.http.close();
-    await this.redis.close();
   }
 
   /**
@@ -73,22 +98,50 @@ export class Application {
     try {
       await withTimeout(connecting, 3_000);
     } catch (error) {
-      this.http.log.error({ err: (error as Error).message }, 'Redis no disponible al arrancar: modo degradado');
+      this.http.log.error(
+        { err: (error as Error).message },
+        'Redis no disponible al arrancar: modo degradado',
+      );
     }
   }
 
   private registerPlatformRoutes(): void {
     // RT-1: permite comprobar desde varios clientes en qué instancia cayó cada uno.
-    this.http.get('/whoami', async () => ({ instance: this.config.instanceId, pid: process.pid }));
+    this.http.get('/whoami', async () => ({
+      instance: this.config.instanceId,
+      pid: process.pid,
+      demo: this.config.string('DEMO_MODE', 'false') === 'true',
+    }));
     // /live siempre 200 para que la plataforma no reinicie las 8 instancias en bucle si Redis cae.
     this.http.get('/live', async () => ({ status: 'vivo', instance: this.config.instanceId }));
     // /ready refleja si esta instancia puede consolidar actas.
     this.http.get('/ready', async (_request, reply) => {
-      const ready = this.health.isHealthy;
-      return reply.code(ready ? 200 : 503).send({ ready, redis: ready ? 'ok' : 'caido', instance: this.config.instanceId });
+      const ready =
+        (await this.health.check()) && this.redis.subscriber.isReady && this.redis.blocking.isReady;
+      return reply
+        .code(ready ? 200 : 503)
+        .send({ ready, redis: ready ? 'ok' : 'caido', instance: this.config.instanceId });
     });
-    this.http.get('/metrics', async (_request, reply) => {
+    // Las métricas revelan carga y topología: con METRICS_TOKEN o un autorizador de módulo
+    // (coordinador de C) exigen Bearer; sin ninguno quedan abiertas solo para desarrollo local.
+    this.http.get('/metrics', async (request, reply) => {
+      if (!this.canReadMetrics(request.headers.authorization)) {
+        return reply.code(401).header('WWW-Authenticate', 'Bearer').send({ code: 'UNAUTHORIZED' });
+      }
       return reply.type(this.metrics.contentType).send(await this.metrics.metrics());
     });
+  }
+
+  private canReadMetrics(authorization: string | undefined): boolean {
+    const expected = this.config.string('METRICS_TOKEN', '');
+    if (!expected && this.metricsAuthorizers.length === 0) return true;
+    const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : '';
+    if (!token) return false;
+    if (expected) {
+      const a = Buffer.from(token);
+      const b = Buffer.from(expected);
+      if (a.length === b.length && timingSafeEqual(a, b)) return true;
+    }
+    return this.metricsAuthorizers.some((authorize) => authorize(token));
   }
 }

@@ -1,0 +1,56 @@
+name: votaciones-c-eight
+services:
+  redis:
+    image: redis:7.4-alpine
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--appendfsync',
+        'everysec',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
+    volumes: ['redis-data:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      timeout: 2s
+      retries: 20
+  app:
+    image: votaciones-c:local
+    build: ..
+    init: true
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    environment:
+      REDIS_URL: redis://redis:6379
+      DEMO_MODE: ${DEMO_MODE:-false}
+      AUDITOR_CREDENTIALS_JSON: ${AUDITOR_CREDENTIALS_JSON:-{}}
+      INTEGRATION_TOKEN: ${INTEGRATION_TOKEN:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      EXPECTED_REPLICAS: '8'
+    deploy:
+      replicas: 8
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      redis:
+        condition: service_healthy
+  gateway:
+    image: nginx:1.28-alpine
+    ports: ['127.0.0.1:8090:80']
+    volumes:
+      [
+        './nginx.eight.conf:/etc/nginx/conf.d/default.conf:ro',
+        './nginx.conf:/etc/nginx/nginx.conf:ro',
+      ]
+    ulimits:
+      nofile: { soft: 131072, hard: 131072 }
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  redis-data:

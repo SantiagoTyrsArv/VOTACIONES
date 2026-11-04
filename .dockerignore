@@ -1,0 +1,11 @@
+.git
+node_modules
+dist
+web-dist
+.env*
+tmp
+docs/evidence
+carga/results
+
+**/node_modules
+**/dist

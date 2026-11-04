@@ -81,12 +81,14 @@ export class FakeActaFeeder {
     await pipeline.exec();
   }
 
-  /** Borra SOLO las claves de resultados (tot:*, st:*). Úselo únicamente en ambientes de prueba. */
+  /** Borra solo resultados departamentales, municipales y de puestos. Conserva st:verif. Úselo únicamente en ambientes de prueba. */
   async reset(): Promise<number> {
     let deleted = 0;
-    for (const pattern of ['tot:*', 'st:*']) {
-      for await (const key of this.redis.scanIterator({ MATCH: pattern, COUNT: 500 })) {
-        deleted += await this.redis.del(key);
+    for (const pattern of ['tot:dep', 'tot:mun:*', 'tot:pue:*', 'st:dep', 'st:mun:*', 'st:pue:*']) {
+      // node-redis 5+ entrega lotes de claves; se aceptan también claves sueltas.
+      for await (const batch of this.redis.scanIterator({ MATCH: pattern, COUNT: 500 })) {
+        const keys: string[] = Array.isArray(batch) ? batch : [batch];
+        if (keys.length > 0) deleted += await this.redis.del(keys);
       }
     }
     return deleted;

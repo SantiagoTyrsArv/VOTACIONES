@@ -1,0 +1,12 @@
+
+> @votaciones/publico@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.12 C:/Users/Danilo Carlosama/Music/VOTACIONES/publico
+
+
+ Test Files  2 passed (2)
+      Tests  8 passed (8)
+   Start at  21:14:51
+   Duration  815ms (transform 429ms, setup 0ms, import 597ms, tests 27ms, environment 1ms)

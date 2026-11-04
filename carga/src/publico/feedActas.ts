@@ -43,7 +43,8 @@ function buildSchedule(mesas: Mesa[]): Scheduled[] {
 async function main(): Promise<void> {
   const redis = createClient({ url: redisUrl });
   await redis.connect();
-  const feeder = new FakeActaFeeder(redis);
+  // createClient sin opciones infiere RESP3; el alimentador usa el tipo genérico del cliente.
+  const feeder = new FakeActaFeeder(redis as unknown as ConstructorParameters<typeof FakeActaFeeder>[0]);
   if (args.flag('reiniciar')) console.log(`Claves de resultados borradas: ${await feeder.reset()}`);
 
   const geography = new SyntheticGeography();

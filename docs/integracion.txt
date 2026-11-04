@@ -1,0 +1,17 @@
+Integración de C con main
+
+Base incorporada: f43ea972 (estructura común y difusión pública de B). Se integra en feature/persona-c; main no se modifica desde esta rama.
+
+El arranque está en server/src/main.ts. Application registra DifusionModule y VerificacionModule en un único Fastify. Ambos usan RedisConnections, UpgradeRouter y el mismo registro Prometheus. C solo cancela sus temporizadores y su suscripción al detenerse; Application cierra las conexiones compartidas.
+
+El código de C pasó a server/src/verificacion y sus contratos a shared/src/verificacion. Los tipos de acta y recibo se importan del contrato común, sin mantener copias. Se conservan los cuatro workspaces del grupo y los comandos de la difusión.
+
+Rutas conservadas de B: /publico/, /publico/sse, /publico/poll, /publico/stats, /publico/inp y /ws/publico. C registra /ws/auditor y su alias /ws/auditors, /api/state, /api/metrics y /api/integration/cases. La consola se sirve en /. Salud y Prometheus se registran una sola vez en la plataforma.
+
+El tablero suma las conexiones y los envíos de ambos módulos. Los contadores de B se leen dentro del mismo proceso. La consulta /ready comprueba Redis con un plazo de 300 ms; /live sigue disponible cuando Redis cae. Se conserva el arranque degradado y la reconexión del servidor común.
+
+Cambios puntuales en B: acceso de lectura a su resumen de métricas, actualización de herramientas de compilación/pruebas y límite del borrado del alimentador a sus claves de resultados. El reinicio del simulador ya no elimina st:verif ni tot:mesa:*. La página pública ahora actualiza la instancia al recibir el primer evento o cambiar de réplica; antes la vista conservaba un guion hasta otra transición de conexión. Sus algoritmos de agregación, continuidad y contrapresión se conservan.
+
+Pendiente de A: registrar IngestaModule, enviar actas dudosas a receiveDoubtfulCase y aplicar resoluciones con las comprobaciones atómicas de contratos.txt. PENDING_A continúa activo. Las pruebas de difusión usan entradas sintéticas del contrato de A; no acreditan la consolidación electoral.
+
+La revisión y fusión del PR a main quedan a cargo del grupo. La carga de 20.000 conexiones y el despliegue remoto siguen pendientes.

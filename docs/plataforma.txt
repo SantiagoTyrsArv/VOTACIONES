@@ -1,0 +1,81 @@
+Plataforma de la Persona C
+
+Entorno local
+
+Desde la raíz del repositorio:
+
+    docker compose up -d --build
+    docker compose run --rm seed
+
+Consola con balanceador: http://localhost:8080
+Página pública de B: http://localhost:8080/publico/
+Réplica 1: http://localhost:8081
+Réplica 2: http://localhost:8082
+
+Identidades de prueba: demo-ana, demo-luis, demo-coord. La pantalla permite entrar sin copiarlas. Cada pestaña usa sessionStorage independiente. Una segunda sesión con la misma identidad reemplaza a la anterior; para probar dos auditores usa identidades distintas.
+
+Redis 7 queda en el puerto local 6379, con volumen redis-data, appendonly yes, appendfsync everysec y noeviction. Solo se expone en 127.0.0.1. El balanceador no usa cookies, ip_hash ni afinidad. Las réplicas solo comparten REDIS_URL; no conocen direcciones de las otras réplicas. DifusionModule y VerificacionModule se registran en el mismo Application. A deberá añadir IngestaModule al mismo arranque.
+
+    docker compose ps
+    docker compose logs --tail 60 app1 app2
+    docker compose exec redis redis-cli CONFIG GET appendonly appendfsync
+    docker compose exec redis redis-cli PUBSUB NUMSUB demo:ch:verif
+    docker compose exec redis redis-cli MEMORY USAGE demo:st:verif
+    docker compose exec redis redis-cli INFO stats
+
+Detener sin borrar datos: docker compose down
+No es necesario eliminar el volumen para volver a arrancar. La semilla es idempotente y no reemplaza casos asignados.
+
+Desarrollo sin contenedores de aplicación
+
+    npm ci
+    Copy-Item .env.example .env
+    npm run build
+    npm run demo:seed
+    npm run dev
+
+La consola compilada queda en http://localhost:3000. Para trabajar sobre la interfaz, otra terminal con npm run dev:console abre Vite en http://localhost:5173 y redirige API/WebSocket al servidor. El servidor y la semilla leen .env; las variables ya establecidas en el proceso tienen prioridad.
+
+Segunda instancia desde PowerShell, en otra terminal:
+
+    $env:PORT='3001'
+    $env:INSTANCE_ID='c-local-extra'
+    npm run dev
+
+Ocho réplicas
+
+Se usa un proyecto Compose independiente con otro Redis y otro volumen. La imagen se construye con el comando local anterior.
+
+    $env:DEMO_MODE='true'
+    docker compose -f deploy/compose.eight.yaml up -d --no-build
+
+Abre http://localhost:8090. El tablero de Coordinación espera ocho muestras. La prueba realizada conserva 80 consultas a /whoami y las ocho muestras en docs/evidence/eight-replicas.json. Es una ejecución local, no un despliegue en la nube ni una prueba electoral de capacidad.
+
+Parar ese entorno: docker compose -f deploy/compose.eight.yaml down
+
+Para modo real establece DEMO_MODE=false y AUDITOR_CREDENTIALS_JSON con credenciales aleatorias de al menos 24 caracteres, por ejemplo un mapa secreto que asocie cada credencial con {id, name, role}. Todos los servidores deben recibir el mismo mapa. No se guarda en Git. INTEGRATION_TOKEN autentica el adaptador HTTP de A; ALLOWED_ORIGINS admite los orígenes de la consola separados por comas. Sin lista explícita solo se admiten WebSockets de igual origen. Los consumidores sin cabecera Origin se autentican igualmente.
+
+Railway
+
+.railway/railway.ts propone el servicio común con 8 réplicas y un Redis 7 independiente con volumen de 1 GiB. Se usa el SDK railway 3.16.0. No se incluye railway.json: la documentación actual del proveedor indica que esa forma está retirada para servicios nuevos.
+
+Antes de desplegar hay que enlazar un proyecto y definir sus variables compartidas: REDIS_PASSWORD (aleatoria, solo alfanumérica para incorporarla a una URL), AUDITOR_CREDENTIALS_JSON, INTEGRATION_TOKEN y ALLOWED_ORIGINS. Redis usa requirepass y una dirección privada; el dominio público corresponde solo al servidor. La rama configurada es feature/persona-c y cualquier cambio de rama debe revisarlo el grupo.
+
+    npm run validate:deploy
+    railway login
+    railway link
+    railway config plan
+
+La validación local comprueba el grafo con el SDK y los recuentos de réplicas. El plan remoto necesita acceso al proyecto. No se ha ejecutado apply ni se ha creado una URL pública. Publicar y verificar esa URL queda para el entorno del grupo; no hay evidencia de nube en esta entrega.
+
+Referencia de la configuración: https://docs.railway.com/infrastructure-as-code/reference
+
+Salud y métricas
+
+/live responde mientras el proceso vive. /ready exige las tres conexiones Redis comunes listas y un PING de hasta 300 ms; si Redis falla responde 503, sin convertir /live en un error. /whoami informa la instancia, el PID y el modo demo. Las respuestas llevan X-Instance-Id y los mensajes WebSocket incluyen instance.
+
+El tablero y /api/metrics requieren perfil coordinator. /metrics conserva la ruta Prometheus de la base común, sin Bearer, y reúne las series de B, C y del proceso. Las conexiones y los envíos del tablero incluyen B y C. Las muestras se publican cada 5 s y caducan a los 15 s. Si no hay muestra reciente, no se inventa un cero como sustituto. Las tarjetas conservadas durante una desconexión corresponden a la última muestra; su hora y el aviso señalan la antigüedad.
+
+Las operaciones de C tienen un plazo de respuesta de 300 ms y un corte de nuevos intentos durante 1 s tras excederlo. Esto incluye una respuesta que no llega aunque el socket Redis siga abierto. Un comando que ya salió puede completarse después del plazo: se informa UNAVAILABLE y se consulta la fotografía; no se afirma que haya fallado o que se haya confirmado una escritura incierta.
+
+Los límites de descriptores están ampliados tanto en aplicaciones como en Nginx. Esto prepara el entorno para la carga, pero no demuestra que un host concreto soporte 20.000 conexiones: también cuentan CPU, memoria, puertos efímeros y límites de los generadores. Consulta carga/uso.txt.

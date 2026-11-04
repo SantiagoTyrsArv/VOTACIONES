@@ -1,0 +1,124 @@
+
+> votaciones@0.1.0 test:c
+> tsx --conditions=development --test --test-concurrency=1 tests/*.test.ts
+
+TAP version 13
+# (node:29172) [FSTDEP023] FastifyDeprecation: disableRequestLogging option is deprecated. Use the logController option with disableRequestLogging or isLogDisabled override instead. The disableRequestLogging top-level option will be removed in `fastify@6`.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:29172) [FSTDEP023] FastifyDeprecation: disableRequestLogging option is deprecated. Use the logController option with disableRequestLogging or isLogDisabled override instead. The disableRequestLogging top-level option will be removed in `fastify@6`.
+# (node:29172) [FSTDEP023] FastifyDeprecation: disableRequestLogging option is deprecated. Use the logController option with disableRequestLogging or isLogDisabled override instead. The disableRequestLogging top-level option will be removed in `fastify@6`.
+# Subtest: B y C comparten servidor: SSE, WS, polling, reconexión y métricas entre dos réplicas
+ok 1 - B y C comparten servidor: SSE, WS, polling, reconexión y métricas entre dos réplicas
+  ---
+  duration_ms: 7482.7269
+  type: 'test'
+  ...
+# Subtest: reiniciar el alimentador público conserva el stream de verificación y los acumulados de mesa
+ok 2 - reiniciar el alimentador público conserva el stream de verificación y los acumulados de mesa
+  ---
+  duration_ms: 2.3706
+  type: 'test'
+  ...
+# Subtest: arranque sin Redis: B queda congelado, C no confirma operaciones y ambos recuperan el servicio
+ok 3 - arranque sin Redis: B queda congelado, C no confirma operaciones y ambos recuperan el servicio
+  ---
+  duration_ms: 6493.7364
+  type: 'test'
+  ...
+# (node:28816) [FSTDEP023] FastifyDeprecation: disableRequestLogging option is deprecated. Use the logController option with disableRequestLogging or isLogDisabled override instead. The disableRequestLogging top-level option will be removed in `fastify@6`.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:28816) [FSTDEP023] FastifyDeprecation: disableRequestLogging option is deprecated. Use the logController option with disableRequestLogging or isLogDisabled override instead. The disableRequestLogging top-level option will be removed in `fastify@6`.
+# Subtest: dos instancias: una sola toma gana y el token es global
+ok 4 - dos instancias: una sola toma gana y el token es global
+  ---
+  duration_ms: 293.5094
+  type: 'test'
+  ...
+# Subtest: renovación: extiende a 30 s y rechaza dueño o token distintos
+ok 5 - renovación: extiende a 30 s y rechaza dueño o token distintos
+  ---
+  duration_ms: 38.3879
+  type: 'test'
+  ...
+# Subtest: liberación tardía y resolución obsoleta no afectan al nuevo dueño
+ok 6 - liberación tardía y resolución obsoleta no afectan al nuevo dueño
+  ---
+  duration_ms: 67.7393
+  type: 'test'
+  ...
+# Subtest: presencia: reconexión invalida sesión anterior y un cierre tardío no borra la nueva
+ok 7 - presencia: reconexión invalida sesión anterior y un cierre tardío no borra la nueva
+  ---
+  duration_ms: 59.388
+  type: 'test'
+  ...
+# Subtest: inactividad: a los 10 minutos no renueva; constantes de aviso a los 8
+ok 8 - inactividad: a los 10 minutos no renueva; constantes de aviso a los 8
+  ---
+  duration_ms: 31.4291
+  type: 'test'
+  ...
+# Subtest: barridos concurrentes: una devolución por caso, sin pérdidas ni duplicados
+ok 9 - barridos concurrentes: una devolución por caso, sin pérdidas ni duplicados
+  ---
+  duration_ms: 344.0926
+  type: 'test'
+  ...
+# Subtest: validación antes de escribir: Redis con tipo incorrecto no deja medio bloqueo
+ok 10 - validación antes de escribir: Redis con tipo incorrecto no deja medio bloqueo
+  ---
+  duration_ms: 34.5776
+  type: 'test'
+  ...
+# Subtest: validación de mensajes y permisos del coordinador
+ok 11 - validación de mensajes y permisos del coordinador
+  ---
+  duration_ms: 24.5982
+  type: 'test'
+  ...
+# (node:28816) [FSTDEP023] FastifyDeprecation: disableRequestLogging option is deprecated. Use the logController option with disableRequestLogging or isLogDisabled override instead. The disableRequestLogging top-level option will be removed in `fastify@6`.
+# Subtest: un caso malformado se rechaza antes de modificar la cola o el bloqueo
+ok 12 - un caso malformado se rechaza antes de modificar la cola o el bloqueo
+  ---
+  duration_ms: 26.4309
+  type: 'test'
+  ...
+# Subtest: entrada de A: idempotencia, conflictos y separación del modo demo
+ok 13 - entrada de A: idempotencia, conflictos y separación del modo demo
+  ---
+  duration_ms: 252.1161
+  type: 'test'
+  ...
+# Subtest: WebSocket real: dos réplicas, avisos, resolución pendiente y reconexión
+ok 14 - WebSocket real: dos réplicas, avisos, resolución pendiente y reconexión
+  ---
+  duration_ms: 554.5899
+  type: 'test'
+  ...
+# Subtest: HTTP y métricas: dos instancias identificables, datos reales y métricas A/B ausentes
+ok 15 - HTTP y métricas: dos instancias identificables, datos reales y métricas A/B ausentes
+  ---
+  duration_ms: 315.6591
+  type: 'test'
+  ...
+# Subtest: Redis sin respuesta: /ready devuelve 503 en plazo y /live sigue en 200
+ok 16 - Redis sin respuesta: /ready devuelve 503 en plazo y /live sigue en 200
+  ---
+  duration_ms: 1932.2014
+  type: 'test'
+  ...
+# Subtest: expiración REAL de 30 s: el barrido de 5 s recupera el caso y elimina presencia fantasma
+ok 17 - expiración REAL de 30 s: el barrido de 5 s recupera el caso y elimina presencia fantasma
+  ---
+  duration_ms: 31275.8446
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 58284.9942

@@ -1,0 +1,48 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      [
+        'server/**',
+        'shared/**',
+        'web/**',
+        'jurado/**',
+        'herramientas/**',
+        'e2e/**',
+        'publico/**',
+        'tests/**',
+        'scripts/**',
+        'carga/**',
+        'deploy/**',
+        'package*.json',
+        'tsconfig*.json',
+        'Dockerfile',
+        '.github/workflows/ci.yml',
+      ]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # Pruebas de ingesta (A): bases 15 y 14; pruebas de C: base 0 del mismo Redis.
+      REDIS_URL_PRUEBAS: redis://localhost:6380/15
+      REDIS_URL_PRUEBAS_HTTP: redis://localhost:6380/14
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6380:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s --health-timeout 2s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - run: npm audit --omit=dev
+      - run: npm run carga:plan
+      - run: npm run validate:deploy

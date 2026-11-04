@@ -54,7 +54,10 @@ export abstract class BaseResultsChannel implements ResultsChannel {
 
   /** Entrega un evento; si revela un hueco, reconecta de inmediato con los cursores. */
   protected deliver(event: PublicEvent): void {
-    if ('instance' in event && event.instance) this.status.instance = event.instance;
+    if ('instance' in event && event.instance && event.instance !== this.status.instance) {
+      this.status = { ...this.status, instance: event.instance };
+      this.events.onStatus(this.status);
+    }
     if (event.type === 'reconnect') {
       this.reconnect(event.retryAfterMs);
       return;

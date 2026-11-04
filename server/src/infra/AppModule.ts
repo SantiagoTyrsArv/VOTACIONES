@@ -13,7 +13,15 @@ export interface ModuleContext {
   readonly redis: RedisConnections;
   readonly health: RedisHealthMonitor;
   readonly metrics: Registry;
+  /**
+   * Agrega una forma de autorizar GET /metrics (p. ej. el rol coordinador de C).
+   * Con al menos un autorizador o METRICS_TOKEN, /metrics deja de ser público.
+   */
+  readonly authorizeMetrics: (authorizer: MetricsAuthorizer) => void;
 }
+
+/** Recibe el token Bearer (sin el prefijo) y dice si puede leer /metrics. */
+export type MetricsAuthorizer = (bearerToken: string) => boolean;
 
 /**
  * Contrato de un módulo funcional. Cada persona es dueña de uno:
