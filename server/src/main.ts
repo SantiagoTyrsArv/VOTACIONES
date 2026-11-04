@@ -24,7 +24,10 @@ const resolutionAdapter = verificationConfig.demo ? undefined : ingesta.resoluci
 const modules: AppModule[] = [
   ingesta, // Persona A
   diffusion, // Persona B
-  new VerificacionModule(verificationConfig, resolutionAdapter, () => diffusion.stats()), // Persona C
+  new VerificacionModule(verificationConfig, resolutionAdapter, () => diffusion.stats(), {
+    onActaAccepted: (listener) => ingesta.onActaRegistrada(listener),
+    onPublicLatency: (listener) => diffusion.onPublishLatency(listener),
+  }), // Persona C
 ];
 const app = new Application(config, modules);
 

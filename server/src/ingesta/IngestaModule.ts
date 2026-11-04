@@ -14,6 +14,12 @@ export class IngestaModule implements AppModule {
 
   private redis: ConexionRedis | null = null;
   private jurados: ReturnType<typeof crearWsJurados> | null = null;
+  private readonly oyentesActas: Array<() => void> = [];
+
+  /** Una llamada por acta aplicada por primera vez en esta instancia (RT-7: actas/min). */
+  onActaRegistrada(listener: () => void): void {
+    this.oyentesActas.push(listener);
+  }
 
   /** Adaptador que C usa para aplicar resoluciones de auditores con el Lua de A. */
   readonly resolucion: ResolucionAtomica;
@@ -36,6 +42,9 @@ export class IngestaModule implements AppModule {
       redis,
       instancia: context.config.instanceId,
       limiteActasPorMinuto: context.config.number('LIMITE_ACTAS_POR_MINUTO', 30),
+    });
+    ingesta.onActaRegistrada(() => {
+      for (const oyente of this.oyentesActas) oyente();
     });
     await registrarHttpIngesta(context.http, { ingesta, redis, instancia: context.config.instanceId, autenticador });
 

@@ -82,8 +82,11 @@ export class RuntimeMetrics {
   }
   // B llama cuando emite realmente el dato; occurredAt viene del acta original.
   recordPublicDelivery(occurredAt: number) {
-    const ms = Date.now() - occurredAt;
-    if (!Number.isFinite(ms) || ms < 0) throw new Error('Timestamp de acta inválido');
+    this.recordPublicLatency(Date.now() - occurredAt);
+  }
+  // Igual que recordPublicDelivery, cuando B ya midió la latencia en ms.
+  recordPublicLatency(ms: number) {
+    if (!Number.isFinite(ms) || ms < 0) throw new Error('Latencia de acta inválida');
     this.publicHook = true;
     this.latency.push({ at: Date.now(), ms });
     this.latencyHistogram.observe(ms / 1000);
