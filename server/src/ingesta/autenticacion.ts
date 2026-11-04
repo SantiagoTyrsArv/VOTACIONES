@@ -38,7 +38,8 @@ export class AutenticadorJurados {
 
   /** La credencial viaja en la URL del WebSocket: el navegador no deja poner cabeceras. */
   autenticarUrl(url: string | undefined): ResultadoAutenticacion {
-    const credencial = new URL(url ?? '/', 'http://local').searchParams.get('credencial') ?? undefined;
+    const consulta = url?.includes('?') ? url.slice(url.indexOf('?') + 1) : '';
+    const credencial = new URLSearchParams(consulta).get('credencial') ?? undefined;
     return this.autenticar(credencial);
   }
 }
