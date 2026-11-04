@@ -24,7 +24,7 @@ export interface AggregationOptions {
 export const DEFAULT_AGGREGATION: AggregationOptions = {
   windowMs: 2_000,
   departmentWindowMs: 5_000,
-  safetySweepMs: 30_000,
+  safetySweepMs: 15_000,
   readBatch: 500,
 };
 

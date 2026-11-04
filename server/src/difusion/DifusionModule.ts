@@ -132,12 +132,25 @@ export class DifusionModule implements AppModule {
   private attach(connection: PublicConnection): void {
     this.registry.add(connection);
     connection.onClose(() => this.detach(connection));
+    if (connection.transport === 'sse') this.limitLifetime(connection);
     if (this.freeze.isFrozen) {
       connection.send(this.freeze.currentStatus());
       this.unsynced.add(connection);
       return;
     }
     void this.synchronize(connection, 'continuar');
+  }
+
+  /**
+   * Railway corta las respuestas HTTP a los 15 min. El cliente rota solo entre 12 y 14 min;
+   * esto es la red de seguridad: si no lo hizo, el servidor cierra ordenadamente (con orden
+   * de reconexión) en un instante aleatorio entre 14 y 14,5 min, antes del corte abrupto.
+   */
+  private limitLifetime(connection: PublicConnection): void {
+    const { maxSseLifetimeMs, sseLifetimeJitterMs } = this.settings;
+    const timer = setTimeout(() => connection.close('rotacion_programada', 0), maxSseLifetimeMs + Math.random() * sseLifetimeJitterMs);
+    timer.unref();
+    connection.onClose(() => clearTimeout(timer));
   }
 
   private detach(connection: PublicConnection): void {

@@ -18,6 +18,8 @@ export class DifusionSettings {
     readonly heartbeatMs: number,
     readonly laggingSweepMs: number,
     readonly publicDir: string | null,
+    readonly maxSseLifetimeMs: number,
+    readonly sseLifetimeJitterMs: number,
   ) {}
 
   static from(config: AppConfig): DifusionSettings {
@@ -27,7 +29,7 @@ export class DifusionSettings {
       {
         windowMs: config.number('PUBLIC_WINDOW_MS', 2_000),
         departmentWindowMs: config.number('PUBLIC_DEP_WINDOW_MS', 5_000),
-        safetySweepMs: config.number('PUBLIC_SAFETY_SWEEP_MS', 30_000),
+        safetySweepMs: config.number('PUBLIC_SAFETY_SWEEP_MS', 15_000),
         readBatch: 500,
       },
       {
@@ -49,6 +51,8 @@ export class DifusionSettings {
       config.number('PUBLIC_HEARTBEAT_MS', 15_000),
       1_000,
       process.env.PUBLIC_DIR ?? null,
+      config.number('SSE_MAX_LIFETIME_MS', 14 * 60_000),
+      30_000,
     );
   }
 }
