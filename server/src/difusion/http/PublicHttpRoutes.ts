@@ -98,7 +98,7 @@ export class PublicHttpRoutes {
 
     http.get('/publico/stats', async () => ({ ...this.deps.metrics.snapshot(), ...this.deps.extraStats() }));
 
-    await this.registerStaticPage(http);
+    this.registerStaticPage(http);
   }
 
   private parse(query: SubscriptionQuery, lastEventId: string | string[] | undefined, reply: FastifyReply): SubscriptionRequest | null {

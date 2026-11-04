@@ -28,8 +28,13 @@ const time = (n: number) =>
     minute: '2-digit',
     second: '2-digit',
   });
+const validCredential = (value: string | null): value is string =>
+  value !== null && /^[A-Za-z0-9._~-]{4,256}$/.test(value);
 export function App() {
-  const [credential, setCredential] = useState(() => sessionStorage.getItem('c-credential') || '');
+  const [credential, setCredential] = useState(() => {
+    const stored = sessionStorage.getItem('c-credential');
+    return validCredential(stored) ? stored : '';
+  });
   const [input, setInput] = useState(''),
     [demo, setDemo] = useState(false),
     [identity, setIdentity] = useState<Identity>();
@@ -183,7 +188,7 @@ export function App() {
   }, [credential, identity?.role]);
   const login = (value: string) => {
     const normalized = value.trim();
-    if (!/^[A-Za-z0-9._~-]{4,256}$/.test(normalized)) {
+    if (!validCredential(normalized)) {
       setNotice({ text: 'La credencial contiene caracteres no permitidos.', kind: 'error' });
       return;
     }

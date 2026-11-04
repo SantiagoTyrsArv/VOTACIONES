@@ -9,7 +9,10 @@ const dockerBin = process.env.DOCKER_BIN;
 if (!dockerBin || !isAbsolute(dockerBin)) throw new Error('Configure DOCKER_BIN con la ruta absoluta de Docker');
 // Solo actúa sobre el proyecto Compose local votaciones-c, con datos demo.
 const docker = (...args: string[]) =>
-  execFileSync(dockerBin, ['compose', ...args], { stdio: 'pipe' });
+  execFileSync(dockerBin, ['compose', ...args], {
+    stdio: 'pipe',
+    env: { ...process.env, PATH: '' },
+  });
 const redis = createClient({ url: 'redis://127.0.0.1:6379' });
 await redis.connect();
 const a = await new TestClient('ws://127.0.0.1:8081/ws/auditors').ready('demo-ana');
@@ -51,7 +54,10 @@ try {
     (await b.request({ type: 'release', caseId: item.id, token: reassigned!.token }))?.code,
     'RELEASED',
   );
-  execFileSync(dockerBin, ['start', 'votaciones-c-app1-1'], { stdio: 'pipe' });
+  execFileSync(dockerBin, ['start', 'votaciones-c-app1-1'], {
+    stdio: 'pipe',
+    env: { ...process.env, PATH: '' },
+  });
   const ready = async () =>
     Promise.all(
       [8081, 8082].map(async (port) => {
@@ -90,7 +96,10 @@ try {
   console.log(JSON.stringify(result, null, 2));
 } finally {
   if (paused) docker('unpause', 'redis');
-  execFileSync(dockerBin, ['start', 'votaciones-c-app1-1'], { stdio: 'pipe' });
+  execFileSync(dockerBin, ['start', 'votaciones-c-app1-1'], {
+    stdio: 'pipe',
+    env: { ...process.env, PATH: '' },
+  });
   clearInterval(keepB);
   a.close();
   b.close();

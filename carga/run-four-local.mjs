@@ -37,7 +37,7 @@ await Promise.all(
           `/scripts/results/segment-${index}.json`,
           '/scripts/connections.js',
         ];
-        const child = spawn(dockerBin, args, { stdio: 'inherit' });
+        const child = spawn(dockerBin, args, { stdio: 'inherit', env: { ...process.env, PATH: '' } });
         child.on('error', rej);
         child.on('exit', (code) =>
           code === 0 ? res() : rej(new Error(`Generador ${index}: ${code}`)),
