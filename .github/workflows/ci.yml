@@ -25,8 +25,9 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     env:
-      # Las pruebas de ingesta (A) usan la base 15; las de C, la base 0 del mismo Redis.
+      # Pruebas de ingesta (A): bases 15 y 14; pruebas de C: base 0 del mismo Redis.
       REDIS_URL_PRUEBAS: redis://localhost:6380/15
+      REDIS_URL_PRUEBAS_HTTP: redis://localhost:6380/14
     services:
       redis:
         image: redis:7.4-alpine
