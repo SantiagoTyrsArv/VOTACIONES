@@ -1,4 +1,4 @@
-import type { Acta, Votos } from '@preconteo/shared';
+import type { Acta, Votos } from '@votaciones/shared';
 
 const arg = (nombre: string, defecto: number) => {
   const i = process.argv.indexOf(`--${nombre}`);

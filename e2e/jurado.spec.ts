@@ -7,11 +7,13 @@ async function llenar(page: import('@playwright/test').Page): Promise<void> {
 }
 let redis: ReturnType<typeof createClient>;
 test.beforeAll(async()=>{
-  redis=createClient({url:'redis://localhost:6379'});await redis.connect();
+  redis=createClient({url:'redis://localhost:6379/13'});await redis.connect();
+});
+test.afterAll(async()=>{await redis.quit();});
+test.beforeEach(async()=>{
+  await redis.flushDb();
   await redis.hSet('cat:mesa:4201',{puesto:176,municipio:11});
 });
-test.afterAll(async()=>{await redis.close();});
-test.beforeEach(async()=>{await redis.del('acta:E14-176-4201-03');});
 
 test('transmite un acta y muestra su recibo en pantalla móvil',async({page})=>{
   const errores:string[]=[];page.on('pageerror',e=>errores.push(e.message));

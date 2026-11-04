@@ -10,7 +10,7 @@ import {
   PROTOCOLO_JURADOS,
   RUTA_WS_JURADOS,
   type MensajeServidorJurado,
-} from '@preconteo/shared';
+} from '@votaciones/shared';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { ServicioIngesta } from './servicio.js';
 

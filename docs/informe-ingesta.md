@@ -23,9 +23,9 @@ Los comandos tienen timeout, cola offline de node-redis desactivada y circuit br
 ## Evidencia ejecutada
 
 - 14 pruebas del contrato compartido.
-- 25 pruebas del servidor: idempotencia, reenvíos ×5, seis permutaciones, regla contable, atomicidad concurrente, HTTP, WebSocket y circuit breaker.
-- 2 pruebas de persistencia IndexedDB.
-- 3 pruebas reales en Chromium: recibo en móvil, recuperación automática tras un corte de red y recarga offline con reintento posterior.
+- 54 pruebas del servidor: ingesta, idempotencia, reenvíos ×5, seis permutaciones, regla contable, atomicidad concurrente, HTTP, WebSocket, circuit breaker y difusión.
+- 2 pruebas de persistencia IndexedDB y 7 pruebas del estado público del navegador.
+- 4 pruebas reales en Chromium: recibo en móvil, recuperación automática tras un corte de red, recarga offline y flujo integrado acta → SSE → corrección pública.
 - TypeScript y compilación de producción de todos los módulos de A.
 
 Comandos de reproducción: `npm test`, `npm run typecheck`, `npm run build` y `npm run test:e2e`.

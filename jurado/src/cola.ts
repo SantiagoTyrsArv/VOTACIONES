@@ -1,4 +1,4 @@
-import type { Acta } from '@preconteo/shared';
+import type { Acta } from '@votaciones/shared';
 
 const DB = 'preconteo-jurado';
 const STORE = 'salida';

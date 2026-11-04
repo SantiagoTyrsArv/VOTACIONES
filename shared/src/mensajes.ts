@@ -35,8 +35,11 @@ export interface AvisoActa {
   acta: string;
   version: number;
   motivo: MotivoCambio;
-  /** Stream id escrito en cada tópico tocado. */
+  /** Stream id escrito en cada tópico tocado (nombre conservado del contrato inicial de A). */
   ids: Partial<Record<Topico, string>>;
+  /** Alias consumidos por la difusión de B. */
+  topics: Topico[];
+  streamIds: Partial<Record<Topico, string>>;
   /** Hora de Redis (ms) en que se aplicó; sirve para medir acta→pantalla. */
   ts: number;
 }

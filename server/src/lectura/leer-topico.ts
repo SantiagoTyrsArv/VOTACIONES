@@ -2,7 +2,7 @@
  * Fotografía atómica de un tópico (leer_topico.lua). La usa B para
  * `event: snapshot` y el polling, y A para la página de estado del jurado.
  */
-import { claves, type Fotografia, type Topico, type Totales } from '@preconteo/shared';
+import { claves, type Fotografia, type Topico, type Totales } from '@votaciones/shared';
 import type { ConexionRedis } from '../redis/conexion.js';
 
 export const PATRON_TOPICO = /^(dep|mun:\d+|pue:\d+)$/;

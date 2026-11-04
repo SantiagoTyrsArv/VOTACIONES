@@ -204,11 +204,13 @@ if hay_cambio then
       'delta', delta_json,
       'totales', cjson.encode(totales),
       'ts', tostring(ms),
+      'recibida_ms', tostring(ms),
       'instancia', ARGV[5])
   end
 
   redis.call('PUBLISH', ARGV[8], cjson.encode({
     acta = acta.acta, version = acta.version, motivo = motivo, ids = ids, ts = ms,
+    topics = topicos, streamIds = ids,
   }))
 end
 

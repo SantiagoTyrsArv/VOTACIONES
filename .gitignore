@@ -8,5 +8,7 @@ playwright-report/
 .env.*
 !.env.example
 .DS_Store
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
+carga/resultados/

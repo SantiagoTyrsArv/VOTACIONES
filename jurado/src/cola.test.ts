@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Acta } from '@preconteo/shared';
+import type { Acta } from '@votaciones/shared';
 import { borrar, guardar, todos } from './cola';
 
 const acta: Acta = {

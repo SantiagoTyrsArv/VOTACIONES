@@ -2,7 +2,7 @@
  * Respaldo HTTP de la ingesta: si el WebSocket no conecta (proxy, red muy
  * mala), la PWA reintenta por POST con la MISMA clave idem.
  */
-import { ESTADOS, PATRON_ACTA, claves, type Estado, type RespuestaIngesta } from '@preconteo/shared';
+import { ESTADOS, PATRON_ACTA, claves, type Estado, type RespuestaIngesta } from '@votaciones/shared';
 import type { FastifyInstance } from 'fastify';
 import type { ConexionRedis } from '../redis/conexion.js';
 import type { ServicioIngesta } from './servicio.js';

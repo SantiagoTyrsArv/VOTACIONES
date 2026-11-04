@@ -14,7 +14,7 @@ import {
   claves,
   validarActa,
   type RespuestaIngesta,
-} from '@preconteo/shared';
+} from '@votaciones/shared';
 import { ErrorReply } from 'redis';
 import { CircuitoAbierto } from '../redis/circuito.js';
 import type { ConexionRedis } from '../redis/conexion.js';

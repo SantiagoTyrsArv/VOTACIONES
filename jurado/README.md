@@ -9,13 +9,13 @@ Desde la raíz del repositorio:
 ```bash
 npm run redis:up
 npm run catalogo --workspace @preconteo/herramientas
-npm run dev --workspace @preconteo/server
+npm run dev
 ```
 
 En otra terminal:
 
 ```bash
-npm run dev
+npm run dev:jurado
 ```
 
 Vite abre la PWA y redirige `/actas` y `/ws/jurados` al servidor del puerto 3000.

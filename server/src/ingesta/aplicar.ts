@@ -15,7 +15,7 @@ import {
   type MotivoRechazo,
   type Recibo,
   type RespuestaIngesta,
-} from '@preconteo/shared';
+} from '@votaciones/shared';
 import type { ConexionRedis } from '../redis/conexion.js';
 
 export type ModoAplicacion = 'jurado' | 'verificacion';

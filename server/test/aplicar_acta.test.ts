@@ -5,7 +5,7 @@
  * regla contable.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { claves, canales, type AvisoActa } from '@preconteo/shared';
+import { claves, canales, type AvisoActa } from '@votaciones/shared';
 import { aplicarActa } from '../src/ingesta/aplicar.js';
 import type { ConexionRedis } from '../src/redis/conexion.js';
 import { acta, conectarPruebas, reiniciar, totales, volcado } from './ayudas.js';
@@ -221,8 +221,9 @@ describe('RF-3 · atomicidad y aviso', () => {
     await sub.close();
 
     expect(recibidos).toHaveLength(1);
-    expect(recibidos[0]).toMatchObject({ motivo: 'nueva', version: 1 });
+    expect(recibidos[0]).toMatchObject({ motivo: 'nueva', version: 1, topics: ['pue:176', 'mun:11', 'dep'] });
     expect(Object.keys(recibidos[0]!.ids).sort()).toEqual(['dep', 'mun:11', 'pue:176']);
+    expect(recibidos[0]!.streamIds).toEqual(recibidos[0]!.ids);
   });
 
   it('con 200 actas concurrentes, cada nivel es exactamente la suma de sus hijos', async () => {

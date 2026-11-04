@@ -1,5 +1,5 @@
 /** Utilidades comunes de las pruebas. Usan la base 15 de Redis. */
-import { CASILLAS, claves, topico, type Acta, type Votos } from '@preconteo/shared';
+import { CASILLAS, claves, topico, type Acta, type Votos } from '@votaciones/shared';
 import { ConexionRedis } from '../src/redis/conexion.js';
 
 export const REDIS_PRUEBAS = process.env.REDIS_URL_PRUEBAS ?? 'redis://localhost:6379/15';

@@ -1,5 +1,5 @@
 import { createClient } from 'redis';
-import { claves, topico } from '@preconteo/shared';
+import { claves, topico } from '@votaciones/shared';
 
 const total = Number(process.env.MESAS ?? 6400);
 const puestos = Number(process.env.PUESTOS ?? 1842);

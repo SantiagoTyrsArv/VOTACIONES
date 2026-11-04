@@ -85,13 +85,14 @@ Escritas por `aplicar_acta.lua` en los tres tópicos del acta (`pue`, `mun`, `de
 | `delta` | `{"C1":-3,"C2":3}` | Cambio que produjo en este nivel |
 | `totales` | `{"C1":5120,…,"mesas_inf":31,"mesas_tot":40}` | Totales del nivel **después** de aplicar |
 | `ts` | `1793577612345` | Hora de Redis en ms |
+| `recibida_ms` | `1793577612234` | Recepción del acta en ms; B calcula la latencia acta → pantalla |
 | `instancia` | `r-3` | Quién ingirió el acta |
 
 ## 6. Pub/Sub
 
 | Canal | Publica | Mensaje |
 |---|---|---|
-| `ch:actas` | `aplicar_acta.lua` | `AvisoActa`: `{ acta, version, motivo, ids: { "pue:176": "…", "mun:11": "…", "dep": "…" }, ts }` |
+| `ch:actas` | `aplicar_acta.lua` | `AvisoActa`: `{ acta, version, motivo, ids, topics, streamIds, ts }`; `ids` y `streamIds` contienen `{ "pue:176": "…", "mun:11": "…", "dep": "…" }` |
 | `ch:verif` | A (al encolar) y C | evento de la cola de verificación |
 
 `ch:actas` es solo un timbre: si se pierde un aviso, la información sigue en los streams.

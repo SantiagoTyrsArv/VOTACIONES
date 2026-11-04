@@ -1,4 +1,4 @@
-import { CASILLAS, esEstadoFinal, validarActa, type Acta, type RespuestaIngesta } from '@preconteo/shared';
+import { CASILLAS, esEstadoFinal, validarActa, type Acta, type RespuestaIngesta } from '@votaciones/shared';
 import { borrar, guardar, todos, type Pendiente } from './cola';
 import './style.css';
 
