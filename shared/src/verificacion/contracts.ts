@@ -101,6 +101,8 @@ export type InstanceMetrics = {
   sampledAt: number;
   uptimeSeconds: number;
   connections: number;
+  verificationConnections: number;
+  publicConnections: number;
   messagesIn: number;
   messagesOut: number;
   messagesPerSecond: number;

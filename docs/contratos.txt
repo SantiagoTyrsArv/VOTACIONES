@@ -1,6 +1,6 @@
 Contratos de C, propuesta v1
 
-Estado: pendiente de aceptación por A y B. Esta rama no define por su cuenta las reglas del preconteo. Los tipos ejecutables están en shared/contracts.ts; los borradores de ingesta y difusión, en shared/proposals.ts.
+Estado: pendiente de aceptación por A y B. Esta rama no define por su cuenta las reglas del preconteo. Los tipos ejecutables están en shared/src/verificacion/contracts.ts; los contratos de ingesta y difusión se reutilizan desde shared/src/messages; la extensión de resolución sigue en shared/src/verificacion/proposals.ts.
 
 Qué recibe C
 
@@ -68,7 +68,7 @@ changed pide una fotografía nueva, no contiene la verdad del caso. La consola s
 
 Cómo debe aplicar A una resolución
 
-ResolutionAdapter está en server/integration.ts. El adaptador entregado solo verifica vigencia y responde pendiente. Sustituirlo requiere una operación real con estas comprobaciones en el mismo Lua que cambia los acumulados, antes de toda escritura:
+ResolutionAdapter está en server/src/verificacion/integration.ts. El adaptador entregado solo verifica vigencia y responde pendiente. Sustituirlo requiere una operación real con estas comprobaciones en el mismo Lua que cambia los acumulados, antes de toda escritura:
 
 1. El caso existe, sigue assigned y su versión es la revisada.
 2. GET lock:caso:{acta} coincide exactamente con auditor:token y sigue vivo.
@@ -81,11 +81,11 @@ Comprobar el token en C y hacer después un POST a A deja una carrera: el bloque
 
 Puntos de métricas para A y B
 
-Cada módulo se registra en buildApp, dentro del mismo servidor, y recibe el Redis y las métricas de esa réplica. No se despliegan A/B/C como servicios que se llamen entre sí.
+Cada módulo implementa AppModule y se registra en Application, dentro del mismo servidor, con las conexiones Redis y el registro Prometheus comunes. No se despliegan A/B/C como servicios que se llamen entre sí.
 
 - A: metrics.recordAcceptedActa() después de una nueva aplicación, nunca ante un reenvío. La ventana mostrada es de 60 s.
 - B: metrics.recordPublicDelivery(occurredAt) cuando emite realmente el dato. El timestamp debe viajar desde el ingreso original; se conserva la ventana reciente para p95.
-- B debe ampliar el recuento de conexiones y envíos para incluir sus transportes. Ahora solo representa C y el banco de eco.
+- El tablero suma las conexiones SSE/WS y los envíos de B con las conexiones y mensajes de C. La muestra también separa publicConnections y verificationConnections. La lectura de B ocurre dentro del proceso, sin HTTP entre réplicas.
 
 Mientras esos hooks no se llamen, la API devuelve null, y el tablero indica que faltan A/B. RSS por conexión divide la memoria total del proceso: no es una medición incremental del costo de un socket. El monitor del Event Loop usa resolución de 20 ms; no se interpreta su base próxima a 20 ms como latencia electoral.
 

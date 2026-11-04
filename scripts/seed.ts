@@ -1,5 +1,5 @@
-import { readConfig } from '../server/config.js';
-import { VerificationStore } from '../server/store.js';
+import { readConfig } from '../server/src/verificacion/config.js';
+import { VerificationStore } from '../server/src/verificacion/store.js';
 const config = readConfig();
 if (!config.demo)
   throw new Error('La carga de ejemplos requiere DEMO_MODE=true. Nunca carga casos reales.');

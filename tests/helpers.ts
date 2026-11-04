@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { WebSocket } from 'ws';
-import type { Config } from '../server/config.js';
-import type { ServerMessage } from '../shared/contracts.js';
-import type { Actor, VerificationStore } from '../server/store.js';
+import type { Config } from '../server/src/verificacion/config.js';
+import type { ServerMessage } from '@votaciones/shared/verificacion';
+import type { Actor, VerificationStore } from '../server/src/verificacion/store.js';
 export const testPrefix = `test-c:${randomUUID()}:`;
 export const config = (instance: string): Config => ({
   redisUrl: process.env.TEST_REDIS_URL || 'redis://127.0.0.1:6380',

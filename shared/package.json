@@ -14,6 +14,16 @@
       },
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./verificacion": {
+      "development": "./src/verificacion/contracts.ts",
+      "types": "./dist/verificacion/contracts.d.ts",
+      "default": "./dist/verificacion/contracts.js"
+    },
+    "./verificacion/proposals": {
+      "development": "./src/verificacion/proposals.ts",
+      "types": "./dist/verificacion/proposals.d.ts",
+      "default": "./dist/verificacion/proposals.js"
     }
   },
   "scripts": {
@@ -22,5 +32,8 @@
   },
   "devDependencies": {
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
   }
 }

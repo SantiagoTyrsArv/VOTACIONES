@@ -1,5 +1,5 @@
-import { caseInputSchema, type CaseInput, type Resolution } from '../shared/contracts.js';
-import type { ActaSubmissionV1 } from '../shared/proposals.js';
+import { caseInputSchema, type CaseInput, type Resolution } from '@votaciones/shared/verificacion';
+import type { ActaSubmissionV1 } from '@votaciones/shared/verificacion/proposals';
 import type { Actor, OperationResult, VerificationStore } from './store.js';
 
 export type ResolutionCommand = {

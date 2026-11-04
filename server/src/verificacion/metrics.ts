@@ -1,10 +1,13 @@
 import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 import { Counter, Gauge, Histogram, Registry } from 'prom-client';
-import type { InstanceMetrics } from '../shared/contracts.js';
+import type { InstanceMetrics } from '@votaciones/shared/verificacion';
 import type { VerificationStore } from './store.js';
 
+export type PublicStatsSource = () => {
+  connections: { sse: number; ws: number };
+  messagesSent: number;
+};
 export class RuntimeMetrics {
-  readonly registry = new Registry();
   readonly loop = monitorEventLoopDelay({ resolution: 20 });
   connections = 0;
   messagesIn = 0;
@@ -20,7 +23,11 @@ export class RuntimeMetrics {
   private readonly outCounter: Counter;
   private readonly actaCounter: Counter;
   private readonly latencyHistogram: Histogram;
-  constructor(readonly store: VerificationStore) {
+  constructor(
+    readonly store: VerificationStore,
+    readonly registry = new Registry(),
+    private readonly publicStats?: PublicStatsSource,
+  ) {
     this.registry.setDefaultLabels({ instance: store.config.instance });
     this.gauges = Object.fromEntries(
       [
@@ -85,7 +92,13 @@ export class RuntimeMetrics {
     const now = performance.now(),
       memory = process.memoryUsage(),
       time = Date.now();
-    const messages = this.messagesIn + this.messagesOut;
+    const publicStats = this.publicStats?.();
+    const publicConnections = publicStats
+      ? publicStats.connections.sse + publicStats.connections.ws
+      : 0;
+    const connections = this.connections + publicConnections;
+    const sent = this.messagesOut + (publicStats?.messagesSent ?? 0);
+    const messages = this.messagesIn + sent;
     const rate = (messages - this.lastMessages) / ((now - this.lastAt) / 1000);
     this.lastMessages = messages;
     this.lastAt = now;
@@ -96,13 +109,15 @@ export class RuntimeMetrics {
       instance: this.store.config.instance,
       sampledAt: time,
       uptimeSeconds: process.uptime(),
-      connections: this.connections,
+      connections,
+      verificationConnections: this.connections,
+      publicConnections,
       messagesIn: this.messagesIn,
-      messagesOut: this.messagesOut,
+      messagesOut: sent,
       messagesPerSecond: rate,
       rssBytes: memory.rss,
       heapBytes: memory.heapUsed,
-      rssBytesPerConnection: this.connections ? memory.rss / this.connections : null,
+      rssBytesPerConnection: connections ? memory.rss / connections : null,
       eventLoopP50Ms: this.loop.percentile(50) / 1e6,
       eventLoopP99Ms: this.loop.percentile(99) / 1e6,
       eventLoopMaxMs: this.loop.max / 1e6,

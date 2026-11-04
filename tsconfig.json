@@ -9,14 +9,8 @@
     "outDir": "dist",
     "rootDir": ".",
     "resolveJsonModule": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "customConditions": ["development"]
   },
-  "include": [
-    "server/**/*.ts",
-    "shared/**/*.ts",
-    "scripts/**/*.ts",
-    "tests/**/*.ts",
-    ".railway/**/*.ts"
-  ],
-  "exclude": ["server/src", "shared/src"]
+  "include": ["scripts/**/*.ts", "tests/**/*.ts", ".railway/**/*.ts"]
 }

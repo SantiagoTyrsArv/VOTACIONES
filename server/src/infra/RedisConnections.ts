@@ -27,7 +27,10 @@ export class RedisConnections {
       client.on('error', (error: Error) => {
         if (reportedDown) return;
         reportedDown = true;
-        this.logger.warn({ err: error.message || error.name }, `Redis (${name}) no disponible; reintentando en segundo plano`);
+        this.logger.warn(
+          { err: error.message || error.name },
+          `Redis (${name}) no disponible; reintentando en segundo plano`,
+        );
       });
       client.on('ready', () => {
         reportedDown = false;
@@ -42,6 +45,7 @@ export class RedisConnections {
       // Sin cola offline: si Redis está caído el comando falla de inmediato (RF-10),
       // en lugar de quedarse esperando y dejar al jurado creyendo que transmitió.
       disableOfflineQueue: true,
+      commandsQueueMaxLength: 1000,
       socket: {
         connectTimeout: 3_000,
         reconnectStrategy: (retries: number) => Math.min(100 * 2 ** retries, 3_000),
@@ -63,7 +67,7 @@ export class RedisConnections {
 
   async close(): Promise<void> {
     await Promise.allSettled(
-      this.entries().map(([, client]) => (client.isReady ? client.quit() : client.disconnect())),
+      this.entries().map(([, client]) => (client.isOpen ? client.disconnect() : undefined)),
     );
   }
 }

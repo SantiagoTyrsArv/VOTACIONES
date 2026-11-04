@@ -1,19 +1,27 @@
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { VerificacionModule } from './verificacion/VerificacionModule.js';
+import { readConfig } from './verificacion/config.js';
 import { AppConfig } from './config/AppConfig.js';
 import type { AppModule } from './infra/AppModule.js';
 import { DifusionModule } from './difusion/DifusionModule.js';
 import { Application } from './infra/Application.js';
 
-/**
- * Punto de entrada. Cada persona agrega aquí UNA línea con su módulo:
- *   A → new IngestaModule()
- *   B → new DifusionModule()
- *   C → new VerificacionModule()
- */
+const envPath = fileURLToPath(new URL('../../.env', import.meta.url));
+if (existsSync(envPath)) process.loadEnvFile(envPath);
+const config = AppConfig.fromEnv();
+const verificationConfig = {
+  ...readConfig(),
+  redisUrl: config.redisUrl,
+  instance: config.instanceId,
+};
+process.env.CONSOLE_DIR ??= fileURLToPath(new URL('../../web-dist', import.meta.url));
+const diffusion = new DifusionModule();
 const modules: AppModule[] = [
-  new DifusionModule(), // Persona B
+  diffusion,
+  new VerificacionModule(verificationConfig, undefined, () => diffusion.stats()),
 ];
-
-const app = new Application(AppConfig.fromEnv(), modules);
+const app = new Application(config, modules);
 
 const shutdown = async (signal: string): Promise<void> => {
   console.log(`Señal ${signal} recibida: cerrando la instancia...`);

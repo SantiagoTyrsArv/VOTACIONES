@@ -8,12 +8,13 @@ Desde la raíz del repositorio:
     docker compose run --rm seed
 
 Consola con balanceador: http://localhost:8080
+Página pública de B: http://localhost:8080/publico/
 Réplica 1: http://localhost:8081
 Réplica 2: http://localhost:8082
 
 Identidades de prueba: demo-ana, demo-luis, demo-coord. La pantalla permite entrar sin copiarlas. Cada pestaña usa sessionStorage independiente. Una segunda sesión con la misma identidad reemplaza a la anterior; para probar dos auditores usa identidades distintas.
 
-Redis 7 queda en el puerto local 6379, con volumen redis-data, appendonly yes, appendfsync everysec y noeviction. Solo se expone en 127.0.0.1. El balanceador no usa cookies, ip_hash ni afinidad. Las réplicas solo comparten REDIS_URL; no conocen direcciones de las otras réplicas. A y B deberán registrarse en el mismo buildApp, no añadirse como servicios separados.
+Redis 7 queda en el puerto local 6379, con volumen redis-data, appendonly yes, appendfsync everysec y noeviction. Solo se expone en 127.0.0.1. El balanceador no usa cookies, ip_hash ni afinidad. Las réplicas solo comparten REDIS_URL; no conocen direcciones de las otras réplicas. DifusionModule y VerificacionModule se registran en el mismo Application. A deberá añadir IngestaModule al mismo arranque.
 
     docker compose ps
     docker compose logs --tail 60 app1 app2
@@ -71,9 +72,9 @@ Referencia de la configuración: https://docs.railway.com/infrastructure-as-code
 
 Salud y métricas
 
-/live responde mientras el proceso vive. /ready exige ambas conexiones Redis listas y un PING de hasta 300 ms; si Redis falla responde 503, sin convertir /live en un error. /whoami informa la instancia y el modo. Las respuestas llevan X-Instance-Id y los mensajes WebSocket incluyen instance.
+/live responde mientras el proceso vive. /ready exige las tres conexiones Redis comunes listas y un PING de hasta 300 ms; si Redis falla responde 503, sin convertir /live en un error. /whoami informa la instancia, el PID y el modo demo. Las respuestas llevan X-Instance-Id y los mensajes WebSocket incluyen instance.
 
-El tablero y /api/metrics requieren perfil coordinator. /metrics entrega Prometheus y exige la misma credencial Bearer; un recolector necesita configurar ese encabezado. Las muestras se publican cada 5 s y caducan a los 15 s. Si no hay muestra reciente, no se inventa un cero como sustituto. Las tarjetas conservadas durante una desconexión corresponden a la última muestra; su hora y el aviso señalan la antigüedad.
+El tablero y /api/metrics requieren perfil coordinator. /metrics conserva la ruta Prometheus de la base común, sin Bearer, y reúne las series de B, C y del proceso. Las conexiones y los envíos del tablero incluyen B y C. Las muestras se publican cada 5 s y caducan a los 15 s. Si no hay muestra reciente, no se inventa un cero como sustituto. Las tarjetas conservadas durante una desconexión corresponden a la última muestra; su hora y el aviso señalan la antigüedad.
 
 Las operaciones de C tienen un plazo de respuesta de 300 ms y un corte de nuevos intentos durante 1 s tras excederlo. Esto incluye una respuesta que no llega aunque el socket Redis siga abierto. Un comando que ya salió puede completarse después del plazo: se informa UNAVAILABLE y se consulta la fotografía; no se afirma que haya fallado o que se haya confirmado una escritura incierta.
 
