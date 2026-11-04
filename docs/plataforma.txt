@@ -55,20 +55,14 @@ Parar ese entorno: docker compose -f deploy/compose.eight.yaml down
 
 Para modo real establece DEMO_MODE=false y AUDITOR_CREDENTIALS_JSON con credenciales aleatorias de al menos 24 caracteres, por ejemplo un mapa secreto que asocie cada credencial con {id, name, role}. Todos los servidores deben recibir el mismo mapa. No se guarda en Git. INTEGRATION_TOKEN autentica el adaptador HTTP de A; ALLOWED_ORIGINS admite los orígenes de la consola separados por comas. Sin lista explícita solo se admiten WebSockets de igual origen. Los consumidores sin cabecera Origin se autentican igualmente.
 
-Railway
+Azure Container Apps
 
-.railway/railway.ts propone el servicio común con 8 réplicas y un Redis 7 independiente con volumen de 1 GiB. Se usa el SDK railway 3.16.0. No se incluye railway.json: la documentación actual del proveedor indica que esa forma está retirada para servicios nuevos.
+El grupo descartó Railway por costo. El despliegue usa Azure Container Apps con el crédito de Azure for Students: deploy/azure/main.bicep define la app con N réplicas fijas sin afinidad de sesión, Redis 7 con TCP interno, contraseña y AOF en Azure Files, y un Job que carga el catálogo. La imagen se publica en ghcr.io con .github/workflows/imagen.yml. El procedimiento completo, los costos y los riesgos están en docs/despliegue-azure.md.
 
-Antes de desplegar hay que enlazar un proyecto y definir sus variables compartidas: REDIS_PASSWORD (aleatoria, solo alfanumérica para incorporarla a una URL), AUDITOR_CREDENTIALS_JSON, INTEGRATION_TOKEN y ALLOWED_ORIGINS. Redis usa requirepass y una dirección privada; el dominio público corresponde solo al servidor. La rama configurada es feature/persona-c y cualquier cambio de rama debe revisarlo el grupo.
+    ./deploy/azure/desplegar.ps1 -CargarCatalogo
+    ./deploy/azure/escalar.ps1 -Replicas 8
 
-    npm run validate:deploy
-    railway login
-    railway link
-    railway config plan
-
-La validación local comprueba el grafo con el SDK y los recuentos de réplicas. El plan remoto necesita acceso al proyecto. No se ha ejecutado apply ni se ha creado una URL pública. Publicar y verificar esa URL queda para el entorno del grupo; no hay evidencia de nube en esta entrega.
-
-Referencia de la configuración: https://docs.railway.com/infrastructure-as-code/reference
+El CI compila la plantilla con az bicep build. Crear los recursos requiere la cuenta del grupo.
 
 Salud y métricas
 

@@ -51,7 +51,7 @@ El generador de jornada produjo 6.400 originales, 3.520 antes del minuto 40, rá
 
 Configuración y dependencias
 
-npm run validate:deploy valida sin credenciales el grafo de Railway: ocho réplicas del servidor y un Redis independiente con volumen. Ambos archivos Compose pasaron docker compose config --quiet. npm audit no detectó vulnerabilidades en las dependencias instaladas; el resultado actualizado está en evidence/audit-integracion.json. El formato del código pasó npm run format:check.
+El CI compila deploy/azure/main.bicep (az bicep build): réplicas fijas del servidor y un Redis independiente con volumen. Ambos archivos Compose pasaron docker compose config --quiet. npm audit no detectó vulnerabilidades en las dependencias instaladas; el resultado actualizado está en evidence/audit-integracion.json. El formato del código pasó npm run format:check.
 
 Qué falta comprobar con el grupo
 

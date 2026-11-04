@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { idDeReplica } from '../config/AppConfig.js';
 import type { AppModule, ModuleContext } from '../infra/AppModule.js';
 import { registerStaticFiles } from '../infra/StaticFiles.js';
 import { ConexionRedis } from '../redis/conexion.js';
@@ -24,7 +25,7 @@ export class IngestaModule implements AppModule {
   /** Adaptador que C usa para aplicar resoluciones de auditores con el Lua de A. */
   readonly resolucion: ResolucionAtomica;
 
-  constructor(instancia = process.env.RAILWAY_REPLICA_ID ?? process.env.INSTANCE_ID ?? 'local') {
+  constructor(instancia = idDeReplica() ?? 'local') {
     this.resolucion = new ResolucionAtomica({ redis: () => this.redis, instancia });
   }
 

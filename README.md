@@ -131,6 +131,7 @@ npm run alimentar --workspace @votaciones/carga -- --redis=redis://localhost:637
 
 - [Contrato compartido](docs/contrato.md)
 - [Arquitectura](docs/arquitectura.md)
+- [Despliegue en Azure Container Apps](docs/despliegue-azure.md)
 - [Informe de ingesta](docs/informe-ingesta.md)
 - [Flujo de trabajo con Git](docs/FLUJO_GIT.md)
 - [Cómo contribuir](CONTRIBUTING.md)

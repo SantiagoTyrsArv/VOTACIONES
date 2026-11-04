@@ -12,5 +12,5 @@
     "noUncheckedIndexedAccess": true,
     "customConditions": ["development"]
   },
-  "include": ["scripts/**/*.ts", "tests/**/*.ts", ".railway/**/*.ts"]
+  "include": ["scripts/**/*.ts", "tests/**/*.ts"]
 }

@@ -16,3 +16,6 @@ tmp/
 carga/resultados/
 carga/results/
 carga/profile.json
+
+# Secretos del despliegue en Azure (los genera deploy/azure/desplegar.ps1)
+deploy/azure/.secretos.local.json

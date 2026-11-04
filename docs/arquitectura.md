@@ -32,7 +32,7 @@ No se usa Socket.IO: oculta el envío por lotes y el búfer pendiente por conexi
 
 ## Stack
 
-Node.js 22 + TypeScript, Fastify, `ws`, SSE escrito a mano, Redis 7 (una instancia, AOF `everysec`), `node-redis`, PWA con Vite, k6 para la carga y despliegue en Railway con 8 réplicas.
+Node.js 22 + TypeScript, Fastify, `ws`, SSE escrito a mano, Redis 7 (una instancia, AOF `everysec`), `node-redis`, PWA con Vite, k6 para la carga y despliegue en Azure Container Apps con 8 réplicas (ver [despliegue-azure.md](despliegue-azure.md); Railway se descartó por costo).
 
 ## Reparto
 

@@ -4,6 +4,15 @@ import { hostname } from 'node:os';
  * Configuración de la instancia leída de variables de entorno.
  * La única dependencia compartida entre instancias es REDIS_URL (RT-3).
  */
+/**
+ * Identificador de la réplica (RT-1). Azure Container Apps expone
+ * CONTAINER_APP_REPLICA_NAME; Railway, RAILWAY_REPLICA_ID; en local se fija
+ * INSTANCE_ID o se usa el hostname.
+ */
+export function idDeReplica(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env.INSTANCE_ID || env.CONTAINER_APP_REPLICA_NAME || env.RAILWAY_REPLICA_ID || undefined;
+}
+
 export class AppConfig {
   private constructor(
     readonly port: number,
@@ -14,7 +23,7 @@ export class AppConfig {
   ) {}
 
   static fromEnv(env: NodeJS.ProcessEnv = process.env): AppConfig {
-    const instanceId = env.RAILWAY_REPLICA_ID ?? env.INSTANCE_ID ?? `${hostname()}-${process.pid}`;
+    const instanceId = idDeReplica(env) ?? `${hostname()}-${process.pid}`;
     return new AppConfig(
       Number(env.PORT ?? 3000),
       env.REDIS_URL ?? 'redis://localhost:6379',

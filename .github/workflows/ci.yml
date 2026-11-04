@@ -16,6 +16,7 @@ on:
         'scripts/**',
         'carga/**',
         'deploy/**',
+        '.github/workflows/imagen.yml',
         'package*.json',
         'tsconfig*.json',
         'Dockerfile',
@@ -49,4 +50,5 @@ jobs:
       - run: npm run test:e2e
       - run: npm audit --omit=dev
       - run: npm run carga:plan
-      - run: npm run validate:deploy
+      # Valida la plantilla de Azure Container Apps (az viene en el runner).
+      - run: az bicep build --file deploy/azure/main.bicep --stdout > /dev/null
