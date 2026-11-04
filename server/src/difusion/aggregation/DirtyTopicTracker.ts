@@ -32,14 +32,15 @@ export class DirtyTopicTracker implements DirtyTopicSource {
     private readonly logger: FastifyBaseLogger,
   ) {}
 
-  async start(): Promise<void> {
+  /** No bloquea: si Redis no está disponible, la suscripción se hace cuando quede "ready". */
+  start(): void {
     this.subscriber.on('ready', () => {
       // Tras una reconexión node-redis restaura la suscripción, pero lo publicado mientras
       // tanto se perdió: forzamos una relectura de los streams.
       if (this.subscribed) this.markAll();
       else void this.subscribe();
     });
-    await this.subscribe();
+    if (this.subscriber.isReady) void this.subscribe();
   }
 
   /** Marca todos los tópicos con suscriptores locales (relectura de seguridad). */

@@ -115,7 +115,7 @@ export class DifusionMetrics {
     });
   }
 
-  messageSent(kind: string, transport: PublicTransport, bytes: number): void {
+  messageSent(kind: string, transport: PublicTransport | 'poll', bytes: number): void {
     this.messages.inc({ kind, transport });
     this.bytes.inc(bytes);
     this.totals.messages++;

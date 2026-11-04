@@ -25,13 +25,20 @@ export class ConnectionSynchronizer {
     private readonly observer: SyncObserver,
   ) {}
 
-  /** @returns true si quedó al día; false si Redis falló (se reintentará luego). */
-  async synchronize(connection: PublicConnection): Promise<boolean> {
+  /**
+   * @param mode "continuar" entrega lo perdido desde el cursor; "fotografia" fuerza el estado
+   *             completo (se usa al reanudar un cliente lento, RF-9).
+   * @returns true si quedó al día; false si Redis falló (se reintentará luego).
+   */
+  async synchronize(connection: PublicConnection, mode: 'continuar' | 'fotografia' = 'continuar'): Promise<boolean> {
     connection.markSynchronizing();
     try {
       for (const topic of [...connection.topics]) {
         for (let round = 0; round < MAX_ROUNDS && connection.isOpen; round++) {
-          const event = await this.catchUp.resume(topic, connection.cursorOf(topic));
+          const event =
+            mode === 'fotografia' && round === 0
+              ? await this.catchUp.photograph(topic, 'contrapresion')
+              : await this.catchUp.resume(topic, connection.cursorOf(topic));
           if (event) {
             const message = new EncodedMessage(event);
             connection.send(message);
