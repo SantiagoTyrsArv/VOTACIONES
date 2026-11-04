@@ -148,7 +148,7 @@ docs/          contrato, arquitectura, despliegue-azure, informe-ingesta, plataf
 2. **Desplegar en Azure** (RT-1, RT-2, RT-10). Pasos completos en `docs/despliegue-azure.md`:
    - Poner **pública** la imagen en GitHub → Packages → `votaciones` → Package settings.
    - `winget install -e --id Microsoft.AzureCLI`, luego `az login` con la cuenta de estudiante.
-   - `./deploy/azure/desplegar.ps1 -CargarCatalogo`.
+   - `./deploy/azure/desplegar.ps1 -CargarCatalogo`. El primer intento (4 nov) falló porque `eastus2` no está permitida para la suscripción de estudiante. Ahora el script elige solo una región permitida.
    - **Guardar y compartir por un canal privado** `deploy/azure/.secretos.local.json`. No se versiona, y sin él no se pueden emitir credenciales de jurados ni entrar a la consola.
    - Comprobar `/whoami` desde varias pestañas (réplicas distintas) e iniciar la jornada desde la consola de coordinación.
    - Usar 1 réplica en el día a día y 8 solo para la carga y la sustentación (`escalar.ps1`). Así el crédito alcanza.

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Crea o actualiza el preconteo en Azure Container Apps (main.bicep).
 
@@ -15,7 +15,9 @@
 #>
 param(
   [string]$Grupo = 'rg-votaciones',
-  [string]$Ubicacion = 'eastus2',
+  # Vacío = se elige una región permitida por la política de la suscripción (Azure for Students
+  # limita las regiones) en la que exista Container Apps.
+  [string]$Ubicacion = '',
   [ValidateRange(1, 10)][int]$Replicas = 1,
   [string]$Imagen = 'ghcr.io/santiagotyrsarv/votaciones:latest',
   [switch]$Demo,
@@ -42,6 +44,25 @@ if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
 }
 & az account show --only-show-errors *> $null
 if ($LASTEXITCODE -ne 0) { throw 'Inicie sesión primero: az login' }
+
+function Get-RegionPermitida {
+  # Regiones de la política "Allowed locations" asignada a la suscripción.
+  $permitidas = @(& az policy assignment list --query '[].parameters.listOfAllowedLocations.value[]' -o tsv --only-show-errors 2>$null |
+      Where-Object { $_ } | ForEach-Object { $_.Trim().ToLower() })
+  $conApps = @(& az provider show --namespace Microsoft.App `
+      --query "resourceTypes[?resourceType=='managedEnvironments'].locations[]" -o tsv --only-show-errors |
+      ForEach-Object { ($_ -replace ' ', '').ToLower() })
+  $preferidas = 'eastus', 'westus2', 'westus3', 'centralus', 'southcentralus', 'northcentralus', 'brazilsouth',
+    'canadacentral', 'westeurope', 'northeurope', 'uksouth', 'francecentral', 'swedencentral'
+  $candidatas = if ($permitidas.Count) { $permitidas | Where-Object { $conApps -contains $_ } } else { $preferidas }
+  if ($permitidas.Count) {
+    Write-Host "  Regiones permitidas por la suscripción: $($permitidas -join ', ')"
+  }
+  $elegida = ($preferidas | Where-Object { $candidatas -contains $_ } | Select-Object -First 1)
+  if (-not $elegida) { $elegida = $candidatas | Select-Object -First 1 }
+  if (-not $elegida) { throw 'No hay una región permitida con Container Apps. Indique una con -Ubicacion.' }
+  return $elegida
+}
 
 Write-Host '· Extensión containerapp y proveedores…'
 Invoke-Az extension add --name containerapp --upgrade --only-show-errors
@@ -82,9 +103,18 @@ $parametros = @{
 $temporal = Join-Path ([IO.Path]::GetTempPath()) "votaciones-params-$([guid]::NewGuid()).json"
 $parametros | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 $temporal
 try {
-  Write-Host "· Grupo de recursos $Grupo en $Ubicacion…"
-  Invoke-Az group create --name $Grupo --location $Ubicacion --only-show-errors --output none
-  Write-Host "· Desplegando ($Replicas réplica(s), imagen $Imagen)…"
+  if (-not $Ubicacion) { $Ubicacion = Get-RegionPermitida }
+  $parametros.parameters.location = @{ value = $Ubicacion }
+  $parametros | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 $temporal
+  # El grupo solo guarda metadatos: si ya existe (aunque sea en otra región) se reutiliza.
+  & az group show --name $Grupo --only-show-errors *> $null
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "· Grupo de recursos $Grupo en ${Ubicacion}…"
+    Invoke-Az group create --name $Grupo --location $Ubicacion --only-show-errors --output none
+  } else {
+    Write-Host "· Grupo de recursos $Grupo (existente); recursos en ${Ubicacion}…"
+  }
+  Write-Host "· Desplegando ($Replicas réplica(s), imagen ${Imagen})…"
   $salida = & az deployment group create --resource-group $Grupo --name votaciones `
     --template-file (Join-Path $aqui 'main.bicep') --parameters "@$temporal" `
     --query properties.outputs --output json --only-show-errors
