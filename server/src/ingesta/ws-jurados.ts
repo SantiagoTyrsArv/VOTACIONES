@@ -9,6 +9,7 @@ import {
   CIERRE_APAGADO,
   PROTOCOLO_JURADOS,
   RUTA_WS_JURADOS,
+  SUBPROTOCOLO_JURADOS,
   type MensajeServidorJurado,
 } from '@votaciones/shared';
 import type { IncomingMessage } from 'node:http';
@@ -31,7 +32,12 @@ export const recordarJurado = (req: IncomingMessage, jurado: JuradoAutenticado):
 };
 
 export function crearWsJurados(op: OpcionesWsJurados) {
-  const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
+  const wss = new WebSocketServer({
+    noServer: true,
+    maxPayload: 16 * 1024,
+    // Se acepta el subprotocolo; la credencial (el otro valor ofrecido) no se devuelve.
+    handleProtocols: (ofrecidos) => (ofrecidos.has(SUBPROTOCOLO_JURADOS) ? SUBPROTOCOLO_JURADOS : false),
+  });
   const vivos = new WeakMap<WebSocket, boolean>();
 
   const enviar = (ws: WebSocket, m: MensajeServidorJurado) => {

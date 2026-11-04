@@ -42,7 +42,7 @@ export class IngestaModule implements AppModule {
     const jurados = crearWsJurados({ ingesta, instancia: context.config.instanceId });
     context.upgrades.register(jurados.ruta, (request, socket, head) => {
       // Se rechaza antes del upgrade: un socket sin credencial válida nunca se abre.
-      const auth = autenticador.autenticarUrl(request.url);
+      const auth = autenticador.autenticarSubprotocolos(request.headers['sec-websocket-protocol']);
       if (!auth.ok) {
         socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
         return;

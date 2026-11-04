@@ -4,7 +4,7 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
-import { claves } from '@votaciones/shared';
+import { SUBPROTOCOLO_JURADOS, claves } from '@votaciones/shared';
 import { emitirCredencial } from '@votaciones/shared/credencial';
 import { AppConfig } from '../src/config/AppConfig.js';
 import { Application } from '../src/infra/Application.js';
@@ -95,20 +95,25 @@ describe('POST /actas con credenciales', () => {
 });
 
 describe('WS /ws/jurados con credenciales', () => {
-  const abrir = (consulta = '') =>
+  const abrir = (credencialWs?: string, consulta = '') =>
     new Promise<WebSocket>((resolve, reject) => {
-      const ws = new WebSocket(`${base.replace('http', 'ws')}/ws/jurados${consulta}`);
+      const protocolos = credencialWs ? [SUBPROTOCOLO_JURADOS, credencialWs] : [SUBPROTOCOLO_JURADOS];
+      const ws = new WebSocket(`${base.replace('http', 'ws')}/ws/jurados${consulta}`, protocolos);
       ws.once('open', () => resolve(ws));
       ws.once('error', reject);
     });
 
   it('rechaza el upgrade sin credencial válida', async () => {
     await expect(abrir()).rejects.toThrow(/401/);
-    await expect(abrir('?credencial=v1.JUR-1.1.x')).rejects.toThrow(/401/);
+    await expect(abrir('v1.JUR-1.1.x')).rejects.toThrow(/401/);
+    // En la URL ya no se acepta (quedaría en logs de proxies).
+    const enUrl = `?credencial=${encodeURIComponent(credencial('JUR-88134'))}`;
+    await expect(abrir(undefined, enUrl)).rejects.toThrow(/401/);
   });
 
   it('con credencial en la URL registra el acta del propio jurado', async () => {
-    const ws = await abrir(`?credencial=${encodeURIComponent(credencial('JUR-88134'))}`);
+    const ws = await abrir(credencial('JUR-88134'));
+    expect(ws.protocol).toBe(SUBPROTOCOLO_JURADOS);
     const a = acta(4202);
     const respuesta = new Promise<Record<string, unknown>>((resolve) =>
       ws.on('message', (d) => {

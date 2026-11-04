@@ -8,6 +8,13 @@ import type { Topico } from './claves.js';
 
 export const PROTOCOLO_JURADOS = 1;
 export const RUTA_WS_JURADOS = '/ws/jurados';
+/**
+ * Subprotocolo del WebSocket de jurados. La credencial viaja como segundo
+ * valor de Sec-WebSocket-Protocol (el navegador no permite otras cabeceras):
+ * `new WebSocket(url, [SUBPROTOCOLO_JURADOS, credencial])`. Nunca en la URL,
+ * que queda en logs de proxies y balanceadores.
+ */
+export const SUBPROTOCOLO_JURADOS = 'preconteo.jurados.v1';
 
 // ─────────────────────────── WebSocket de jurados ───────────────────────────
 

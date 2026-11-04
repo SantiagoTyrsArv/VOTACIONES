@@ -33,8 +33,8 @@ Definida en [`shared/src/acta.ts`](../shared/src/acta.ts), igual al enunciado (�
 Definida en [`shared/src/credencial.ts`](../shared/src/credencial.ts) (solo Node). Formato `v1.{jurado}.{vence}.{firma}`, con `firma = base64url(HMAC-SHA256(JURADO_SECRETO, "v1.{jurado}.{vence}"))`. El servidor no confía en `acta.jurado`: toma el jurado de la credencial verificada, exige que coincida y usa ese valor para el límite de tasa. Las 8 réplicas comparten el secreto por variable de entorno, sin estado de sesión.
 
 - `POST /actas`: cabecera `Authorization: Bearer {credencial}`.
-- `WS /ws/jurados?credencial={credencial}`: el navegador no permite cabeceras en el WebSocket. Sin una credencial válida, el upgrade se rechaza con 401 antes de abrir el socket.
-- Emisión: `JURADO_SECRETO=… npm run credenciales -w @preconteo/herramientas -- --desde 1 --hasta 50` imprime un CSV con un enlace `/jurado/?credencial=…` por jurado.
+- `WS /ws/jurados`: el navegador no permite cabeceras en el WebSocket, así que la credencial viaja como segundo valor de `Sec-WebSocket-Protocol`: `new WebSocket(url, ['preconteo.jurados.v1', credencial])`. El servidor acepta solo el subprotocolo y no devuelve la credencial. **Nunca en la URL**, que queda en logs de proxies. Sin una credencial válida, el upgrade se rechaza con 401 antes de abrir el socket.
+- Emisión: `JURADO_SECRETO=… npm run credenciales -w @preconteo/herramientas -- --desde 1 --hasta 50` imprime un CSV con un enlace `/jurado/#credencial=…` por jurado (el fragmento no llega al servidor; la PWA lo borra de la barra de direcciones).
 - La PWA guarda la credencial junto con cada acta en la cola offline. Si recibe `NO_AUTORIZADO`, conserva el acta hasta que se cargue una credencial válida.
 
 Sin `JURADO_SECRETO` la verificación queda desactivada (desarrollo y pruebas) y el servidor lo avisa en el log al arrancar.

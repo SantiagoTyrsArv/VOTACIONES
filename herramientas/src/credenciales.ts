@@ -4,7 +4,7 @@
  *   JURADO_SECRETO=… npm run credenciales -w @preconteo/herramientas -- --desde 1 --hasta 5 [--horas 24]
  *
  * Imprime CSV `jurado,mesa,credencial,enlace`. El enlace abre la PWA con la
- * credencial ya cargada (`/jurado/?credencial=…`), útil para un código QR.
+ * credencial ya cargada (`/jurado/#credencial=…`; el fragmento no llega al servidor), útil para un QR.
  */
 import { emitirCredencial } from '@votaciones/shared/credencial';
 import { juradoDeMesa } from './jurados.js';
@@ -27,5 +27,5 @@ console.log('jurado,mesa,credencial,enlace');
 for (let mesa = desde; mesa <= hasta; mesa++) {
   const jurado = juradoDeMesa(mesa);
   const credencial = emitirCredencial(secreto, jurado, vence);
-  console.log(`${jurado},${mesa},${credencial},${base}/jurado/?credencial=${encodeURIComponent(credencial)}`);
+  console.log(`${jurado},${mesa},${credencial},${base}/jurado/#credencial=${encodeURIComponent(credencial)}`);
 }

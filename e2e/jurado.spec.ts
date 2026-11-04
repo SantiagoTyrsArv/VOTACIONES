@@ -62,11 +62,11 @@ test('recarga sin red conserva la aplicación y el envío pendiente',async({page
   await expect(page.locator('#aviso')).toContainText(/REGISTRADA|YA_REGISTRADA/);
 });
 
-test('la instancia sirve la PWA en /jurado/ y el enlace con credencial no queda en la URL',async({page})=>{
+test('la instancia sirve la PWA en /jurado/ y el enlace con credencial (fragmento) no queda en la URL',async({page})=>{
   const errores:string[]=[];page.on('pageerror',e=>errores.push(e.message));
   // Sin JURADO_SECRETO el servidor no verifica la firma; aquí se prueba el flujo del enlace.
   const credencial='v1.JUR-88134.9999999999.abcdefghijklmnopqrstuvwxyz012345';
-  await page.goto(`http://127.0.0.1:3000/jurado?credencial=${credencial}`);
+  await page.goto(`http://127.0.0.1:3000/jurado#credencial=${credencial}`);
   await expect(page).toHaveURL('http://127.0.0.1:3000/jurado/');
   await expect(page.locator('#jurado')).toHaveValue('JUR-88134');
   await expect(page.locator('#jurado')).toHaveJSProperty('readOnly',true);
