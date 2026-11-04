@@ -74,7 +74,7 @@ sequenceDiagram
     R-->>IA: REGISTRADA + recibo
     IA-->>J: recibo (el acta sale de la cola local)
     R-->>IB: aviso en ch:actas (tópicos tocados)
-    Note over IB: marca el tópico "sucio"; cada 2 s (5 s el departamental)<br/>lee XRANGE desde su último id y condensa
+    Note over IB: marca el tópico "sucio" y cada 2 s (5 s el departamental)<br/>lee XRANGE desde su último id y condensa
     IB->>P: UN mensaje por tópico y ventana, enviado por lotes
 ```
 
