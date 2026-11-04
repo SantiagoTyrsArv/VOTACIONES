@@ -54,6 +54,9 @@ export const claves = {
   /** Idempotencia de la resolución de un caso: una por toma (token de cercado). */
   resolucion: (id: string, token: string) => `resolucion:${id}:${token}`,
   streamVerif: () => 'st:verif',
+  // ── Jornada simulada (RT-10): una sola réplica la ejecuta
+  jornadaCandado: () => 'jornada:candado',
+  jornadaEstado: () => 'jornada:estado',
 } as const;
 
 export const canales = {

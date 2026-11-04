@@ -5,7 +5,7 @@
  */
 import { emitirCredencial } from '@votaciones/shared/credencial';
 
-export const juradoDeMesa = (mesa: number): string => `JUR-${mesa}`;
+export { juradoDeMesa } from '@votaciones/shared';
 
 const secreto = process.env.JURADO_SECRETO;
 const venceS = Math.floor(Date.now() / 1000) + 24 * 3600;

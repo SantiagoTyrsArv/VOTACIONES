@@ -23,6 +23,17 @@ import { RuntimeMetrics, type PublicStatsSource } from './metrics.js';
 export interface PlatformSignals {
   onActaAccepted?(listener: () => void): void;
   onPublicLatency?(listener: (ms: number) => void): void;
+  /** Jornada simulada de A, controlada por coordinación (RT-10). */
+  simulation?: SimulationControl;
+}
+
+export interface SimulationControl {
+  estado(): Promise<unknown>;
+  iniciar(o: {
+    aceleracion: number;
+    reiniciar: boolean;
+  }): Promise<{ ok: boolean; motivo?: string }>;
+  detener(): Promise<boolean>;
 }
 
 const equalSecret = (left: string, right: string) => {
@@ -123,6 +134,36 @@ async function registerVerification(
       pending: pendingSignals,
     };
   });
+  const simulation = signals.simulation;
+  if (simulation) {
+    const isCoordinator = (authorization?: string) =>
+      credentialIdentity(bearer(authorization))?.role === 'coordinator';
+    app.get('/api/demo/jornada', async (req, reply) => {
+      if (!isCoordinator(req.headers.authorization))
+        return reply.code(403).send({ code: 'FORBIDDEN' });
+      return simulation.estado();
+    });
+    app.post('/api/demo/jornada', async (req, reply) => {
+      if (!isCoordinator(req.headers.authorization))
+        return reply.code(403).send({ code: 'FORBIDDEN' });
+      const body = (req.body ?? {}) as {
+        accion?: unknown;
+        aceleracion?: unknown;
+        reiniciar?: unknown;
+      };
+      if (body.accion === 'detener') return { ok: await simulation.detener() };
+      const aceleracion = Number(body.aceleracion);
+      if (
+        body.accion !== 'iniciar' ||
+        !Number.isFinite(aceleracion) ||
+        aceleracion < 1 ||
+        aceleracion > 600
+      )
+        return reply.code(400).send({ code: 'INVALID_REQUEST' });
+      const result = await simulation.iniciar({ aceleracion, reiniciar: body.reiniciar === true });
+      return reply.code(result.ok ? 202 : 409).send(result);
+    });
+  }
   app.post('/api/integration/cases', async (req, reply) => {
     if (
       !config.integrationToken ||

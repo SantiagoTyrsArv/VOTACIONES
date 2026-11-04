@@ -27,6 +27,7 @@ const modules: AppModule[] = [
   new VerificacionModule(verificationConfig, resolutionAdapter, () => diffusion.stats(), {
     onActaAccepted: (listener) => ingesta.onActaRegistrada(listener),
     onPublicLatency: (listener) => diffusion.onPublishLatency(listener),
+    simulation: ingesta.jornada,
   }), // Persona C
 ];
 const app = new Application(config, modules);

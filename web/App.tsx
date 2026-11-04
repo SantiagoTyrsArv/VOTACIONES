@@ -511,6 +511,7 @@ export function App() {
           {tab === 'platform' && (
             <>
               {metricError && <div className="notice error">{metricError}</div>}
+              <SimulationPanel credential={credential} />
               <div className="stats">
                 <Stat
                   label="RÉPLICAS CON MUESTRA"
@@ -579,31 +580,167 @@ export function App() {
                   </table>
                 </div>
               </section>
-              <div className="integration-cards">
-                <article className="panel">
-                  <span className="badge amber">PENDIENTE · A</span>
-                  <h3>Actas por minuto</h3>
-                  <p>El contador se conectará después de la aplicación real de cada acta.</p>
-                </article>
-                <article className="panel">
-                  <span className="badge amber">PENDIENTE · A + B</span>
-                  <h3>Latencia acta → público</h3>
-                  <p>
-                    Falta conectar el ingreso real de A con la publicación de B. El eco no acredita
-                    esta latencia.
-                  </p>
-                </article>
+              <div className="stats">
+                <Stat
+                  label="ACTAS / MINUTO"
+                  value={
+                    metrics.some((m) => m.acceptedActasPerMinute !== null)
+                      ? metrics.reduce((n, m) => n + (m.acceptedActasPerMinute ?? 0), 0)
+                      : '—'
+                  }
+                  sub="Aplicadas por primera vez, suma de réplicas (último minuto)"
+                />
+                <Stat
+                  label="LATENCIA ACTA → PÚBLICO"
+                  value={(() => {
+                    const values = metrics
+                      .map((m) => m.publicLatencyP95Ms)
+                      .filter((v): v is number => v !== null);
+                    return values.length ? `${Math.round(Math.max(...values))} ms` : '—';
+                  })()}
+                  sub="p95 de la peor réplica (último minuto)"
+                />
               </div>
             </>
           )}
         </main>
         <footer>
-          VOTACIONES <span>Persona C · Contratos v1 propuestos para integración</span>
+          VOTACIONES <span>Preconteo electoral · A + B + C</span>
         </footer>
       </div>
     </div>
   );
 }
+type Simulation =
+  | { estado: 'inactiva' }
+  | {
+      estado: 'en_curso' | 'terminada' | 'detenida' | 'interrumpida';
+      instancia: string;
+      aceleracion: number;
+      solicitudes: number;
+      enviadas: number;
+      porEstado: Record<string, number>;
+    };
+const simulationLabels: Record<string, string> = {
+  inactiva: 'Sin jornada',
+  en_curso: 'En curso',
+  terminada: 'Terminada',
+  detenida: 'Detenida',
+  interrumpida: 'Interrumpida (la réplica que la ejecutaba se detuvo)',
+};
+// RT-10: la jornada simulada se activa desde aquí, sin depender del grupo.
+function SimulationPanel({ credential }: { credential: string }) {
+  const [state, setState] = useState<Simulation>();
+  const [speed, setSpeed] = useState(60);
+  const [reset, setReset] = useState(false);
+  const [error, setError] = useState('');
+  const call = async (body?: object) => {
+    const res = await fetch('/api/demo/jornada', {
+      method: body ? 'POST' : 'GET',
+      headers: {
+        Authorization: `Bearer ${credential}`,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    if (res.status === 404) throw new Error('Esta instancia no tiene jornada simulada.');
+    const data = await res.json();
+    if (!res.ok)
+      throw new Error(
+        data.motivo === 'EN_CURSO' ? 'Ya hay una jornada en curso.' : 'No se pudo completar.',
+      );
+    return data;
+  };
+  useEffect(() => {
+    let disposed = false;
+    const load = () =>
+      call()
+        .then((data: Simulation) => !disposed && (setState(data), setError('')))
+        .catch((e: Error) => !disposed && setError(e.message));
+    void load();
+    const id = setInterval(load, 2000);
+    return () => {
+      disposed = true;
+      clearInterval(id);
+    };
+  }, [credential]);
+  const running = state?.estado === 'en_curso';
+  const progress =
+    state && state.estado !== 'inactiva' && state.solicitudes
+      ? Math.round((100 * state.enviadas) / state.solicitudes)
+      : 0;
+  return (
+    <section className="panel simulation-panel">
+      <div className="panel-heading">
+        <h2>Jornada simulada</h2>
+        <span className={`badge ${running ? 'amber' : 'neutral'}`}>
+          {simulationLabels[state?.estado ?? 'inactiva']}
+        </span>
+      </div>
+      <p className="panel-note">
+        6.400 actas por la ingesta real: 55 % en los primeros 40 min, ráfagas de 300/min, reenvíos,
+        correcciones y actas dudosas que llegan a la cola de verificación. Repetirla sin borrar
+        reenvía las mismas actas: vuelven como YA_REGISTRADA (idempotencia).
+      </p>
+      {state && state.estado !== 'inactiva' && (
+        <p className="panel-note">
+          {state.enviadas} / {state.solicitudes} solicitudes ({progress} %) · ×{state.aceleracion} ·
+          réplica {state.instancia} ·{' '}
+          {Object.entries(state.porEstado)
+            .map(([k, v]) => `${k} ${v}`)
+            .join(' · ')}
+        </p>
+      )}
+      {error && <div className="notice error">{error}</div>}
+      <div className="simulation-actions">
+        <label>
+          Velocidad
+          <select
+            value={speed}
+            onChange={(e) => setSpeed(Number(e.target.value))}
+            disabled={running}
+          >
+            <option value={1}>Tiempo real (2 h)</option>
+            <option value={12}>×12 (10 min)</option>
+            <option value={60}>×60 (2 min)</option>
+            <option value={240}>×240 (30 s)</option>
+          </select>
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={reset}
+            onChange={(e) => setReset(e.target.checked)}
+            disabled={running}
+          />
+          Borrar resultados antes de empezar
+        </label>
+        {running ? (
+          <button
+            className="primary"
+            onClick={() =>
+              void call({ accion: 'detener' }).catch((e: Error) => setError(e.message))
+            }
+          >
+            Detener
+          </button>
+        ) : (
+          <button
+            className="primary"
+            onClick={() =>
+              void call({ accion: 'iniciar', aceleracion: speed, reiniciar: reset })
+                .then(() => call().then(setState))
+                .catch((e: Error) => setError(e.message))
+            }
+          >
+            Iniciar jornada
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function Stat({ label, value, sub }: { label: string; value: string | number; sub: string }) {
   return (
     <article className="stat">

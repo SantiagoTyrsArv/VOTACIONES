@@ -1,5 +1,5 @@
 import { createClient } from 'redis';
-import { claves, topico } from '@votaciones/shared';
+import { claves, topico, ubicacionDeMesa } from '@votaciones/shared';
 import { juradoDeMesa } from './jurados.js';
 
 const total = Number(process.env.MESAS ?? 6400);
@@ -12,8 +12,8 @@ const porTopico = new Map<string, number>();
 const pipeline = redis.multi();
 for (let i = 0; i < total; i++) {
   const mesa = i + 1;
-  const puesto = (i % puestos) + 1;
-  const municipio = (puesto % municipios) + 1;
+  // Misma regla que la jornada simulada (shared/src/jornada.ts).
+  const { puesto, municipio } = ubicacionDeMesa(mesa, { mesas: total, puestos, municipios });
   pipeline.hSet(claves.catMesa(mesa), { puesto, municipio });
   // Asignación jurado → mesa (un jurado por mesa en la simulación: JUR-{mesa}).
   pipeline.sAdd(claves.mesasJurado(juradoDeMesa(mesa)), String(mesa));

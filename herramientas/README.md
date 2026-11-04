@@ -19,12 +19,22 @@ Con el servidor de ingesta activo:
 npm run jornada --workspace @preconteo/herramientas
 ```
 
-Perfil predeterminado: 6.400 actas en 120 minutos, 55 % durante los primeros 40 minutos, 7 % de reenvíos y 7 % de actas dudosas. Cada reenvío usa el mismo `idem`.
+Usa el mismo plan que el botón **Jornada simulada** de la consola de coordinación (`planJornada` en `shared/src/jornada.ts`, con semilla fija). El perfil predeterminado es:
+
+- 6.400 actas en 120 minutos, el 55 % durante los primeros 40;
+- tres ráfagas de ~300 actas/min;
+- 7 % de reenvíos (cada uno con el mismo `idem`);
+- ~180 correcciones (versión 2);
+- 7 % de actas dudosas.
+
+`--acelerar 60` comprime las 2 horas en 2 minutos.
+
+**Sin terminal (RT-10):** en la consola, la cuenta de coordinación tiene el panel *Plataforma → Jornada simulada*. Ese panel ejecuta el plan dentro de una sola réplica (candado en Redis) con la ingesta real y carga el catálogo si falta. Repetirla sin borrar reenvía las mismas actas, que vuelven `YA_REGISTRADA`.
 
 Opciones:
 
 ```bash
-npm run jornada --workspace @preconteo/herramientas -- --actas 100 --duracion 2 --reenvios 10 --dudosas 8
+npm run jornada --workspace @preconteo/herramientas -- --actas 100 --duracion 2 --reenvios 10 --dudosas 8 --acelerar 10
 ```
 
 `BASE_URL` selecciona el servidor (por defecto `http://localhost:3000`). El catálogo debe cargarse antes con los mismos valores de `MESAS`, `PUESTOS` y `MUNICIPIOS`.
