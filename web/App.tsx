@@ -182,9 +182,14 @@ export function App() {
     };
   }, [credential, identity?.role]);
   const login = (value: string) => {
-    sessionStorage.setItem('c-credential', value);
+    const normalized = value.trim();
+    if (!/^[A-Za-z0-9._~-]{4,256}$/.test(normalized)) {
+      setNotice({ text: 'La credencial contiene caracteres no permitidos.', kind: 'error' });
+      return;
+    }
+    sessionStorage.setItem('c-credential', normalized);
     setNotice(undefined);
-    setCredential(value);
+    setCredential(normalized);
   };
   const logout = () => {
     sessionStorage.removeItem('c-credential');

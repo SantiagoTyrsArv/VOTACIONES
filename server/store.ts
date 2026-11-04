@@ -22,7 +22,6 @@ export class VerificationStore {
       url: config.redisUrl,
       disableOfflineQueue: true,
       commandsQueueMaxLength: 1000,
-      commandOptions: { timeout: 300 },
       socket: {
         connectTimeout: 2000,
         reconnectStrategy: (retries) => Math.min(100 * (retries + 1), 2000),
@@ -62,11 +61,9 @@ export class VerificationStore {
     this.subscriber.on('ready', onChange);
   }
   async close() {
-    await Promise.all(
-      [this.redis, this.subscriber].map(async (client) => {
-        if (client.isOpen) client.destroy();
-      }),
-    );
+    for (const client of [this.redis, this.subscriber]) {
+      if (client.isOpen) client.disconnect();
+    }
   }
   caseKeys(id: string) {
     identifier.parse(id);

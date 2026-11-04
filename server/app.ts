@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
-import fastifyStatic from '@fastify/static';
+import { registerStaticFiles } from './static.js';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { setImmediate as yieldLoop } from 'node:timers/promises';
 import { existsSync } from 'node:fs';
@@ -330,8 +330,7 @@ export async function buildApp(config: Config, adapter: ResolutionAdapter = new 
       });
     });
   const staticRoot = resolve('web-dist');
-  if (existsSync(staticRoot))
-    await app.register(fastifyStatic, { root: staticRoot, prefix: '/', index: 'index.html' });
+  if (existsSync(staticRoot)) registerStaticFiles(app, staticRoot, '/');
   const sweepTimer = setInterval(() => {
     if (sweepBusy || stopping) return;
     sweepBusy = true;

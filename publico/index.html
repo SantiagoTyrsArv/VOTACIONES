@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Preconteo electoral en tiempo real: resultados informativos, no oficiales." />
+    <title>Preconteo · Resultados en vivo</title>
+  </head>
+  <body>
+    <main id="app" class="pagina">
+      <header class="cabecera">
+        <p class="cabecera__antetitulo">Preconteo informativo · no oficial</p>
+        <h1 data-titulo>Departamento</h1>
+        <p class="estado"><span class="estado__punto" data-fase="conectando">Conectando…</span></p>
+      </header>
+
+      <div class="aviso aviso--congelado" data-congelado hidden></div>
+
+      <section class="tarjeta" aria-labelledby="t-mesas">
+        <h2 id="t-mesas" class="visualmente-oculto">Avance</h2>
+        <div class="avance">
+          <span data-mesas>Cargando resultados…</span>
+          <strong data-mesas-pct>0 %</strong>
+        </div>
+        <div class="barra barra--avance"><div class="barra__relleno" data-mesas-bar></div></div>
+        <dl class="cifras">
+          <div><dt>Sufragantes</dt><dd data-sufragantes>0</dd></div>
+          <div><dt>Nulos</dt><dd data-nulos>0</dd></div>
+          <div><dt>No marcados</dt><dd data-no-marcados>0</dd></div>
+        </dl>
+      </section>
+
+      <section class="tarjeta" aria-labelledby="t-candidatos">
+        <h2 id="t-candidatos">Votos por candidato</h2>
+        <ol class="candidatos" data-candidatos></ol>
+      </section>
+
+      <section class="tarjeta" data-correcciones hidden aria-labelledby="t-correcciones">
+        <h2 id="t-correcciones">Correcciones recientes</h2>
+        <p class="nota">Cuando un acta se corrige, el número puede bajar; aquí se explica por qué.</p>
+        <ul class="correcciones" data-correcciones-lista></ul>
+      </section>
+
+      <section class="tarjeta">
+        <h2>Ver otro lugar</h2>
+        <form class="formulario" data-form-topico method="get">
+          <label>Municipio <input name="mun" inputmode="numeric" pattern="[0-9]*" placeholder="p. ej. 11" /></label>
+          <label>Puesto <input name="pue" inputmode="numeric" pattern="[0-9]*" placeholder="p. ej. 176" /></label>
+          <label>Transporte
+            <select name="transporte">
+              <option value="sse">SSE (recomendado)</option>
+              <option value="ws">WebSocket</option>
+              <option value="poll">Polling 2 s</option>
+            </select>
+          </label>
+          <button type="submit">Ver resultados</button>
+        </form>
+      </section>
+
+      <footer class="tecnico">
+        <h2>Datos técnicos</h2>
+        <dl class="tecnico__lista">
+          <div><dt>Transporte</dt><dd data-transporte>—</dd></div>
+          <div><dt>Instancia</dt><dd data-instancia>—</dd></div>
+          <div><dt>Reconexiones</dt><dd data-reconexiones>0</dd></div>
+          <div><dt>Mensajes recibidos</dt><dd data-mensajes>0</dd></div>
+          <div><dt>Latencia acta→pantalla</dt><dd data-latencia>—</dd></div>
+          <div><dt>INP</dt><dd data-inp>—</dd></div>
+          <div><dt>Retrocesos sin explicación</dt><dd data-anomalias>0</dd></div>
+        </dl>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

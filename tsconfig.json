@@ -17,5 +17,6 @@
     "scripts/**/*.ts",
     "tests/**/*.ts",
     ".railway/**/*.ts"
-  ]
+  ],
+  "exclude": ["server/src", "shared/src"]
 }

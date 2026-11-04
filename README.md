@@ -1,33 +1,56 @@
-# Votaciones
+# VOTACIONES · Preconteo electoral en tiempo real
 
-Parte C: revisión de actas, presencia del equipo y plataforma. Rama `feature/persona-c`.
+Taller de WebSockets · Programación Orientada a la Web · Ingeniería de Software, séptimo semestre.
 
-Para levantar la demostración necesitas Docker Desktop con contenedores Linux:
+Un acta debe llegar con garantías distintas a jurados, auditores y público, atravesando **8 instancias de Node.js sin sesiones pegajosas** que solo se coordinan por **Redis**.
 
-```sh
+| Integrante | Rol | Responsabilidad |
+|---|---|---|
+| Santiago Arévalo | Persona A · Ingesta y consistencia | Jurados, idempotencia, correcciones y acumulados |
+| David Ramírez | Persona B · Difusión pública | SSE/WS/polling, fan-out, continuidad y contrapresión |
+| Camila Zambrano | Persona C · Verificación y plataforma | Auditores, bloqueo, presencia, despliegue, métricas y carga |
+
+## Estructura
+
+- `shared/`: contratos, tópicos, claves y mensajes.
+- `server/src/`: infraestructura y difusión comunes.
+- `server/`: implementación independiente actual de verificación C.
+- `publico/`: página pública B.
+- `web/`: consola de auditores C.
+- `carga/`: perfiles y generadores de carga.
+
+## Verificación y pruebas
+
+Requisitos: Node.js 22, Docker y Redis de pruebas en el puerto 6380.
+
+```bash
+npm ci --ignore-scripts
+docker run -d --name votaciones-c-redis-tests -p 127.0.0.1:6380:6379 redis:7.4-alpine
+npm run check
+npm run validate:deploy
+```
+
+`npm run check` comprueba los módulos comunes y C, compila y ejecuta las pruebas contra Redis real.
+
+## Demostración de C
+
+```bash
 docker compose up -d --build
 docker compose run --rm seed
 ```
 
-Abre [localhost:8080](http://localhost:8080). Entra como Ana en una pestaña y como Luis en otra para probar la toma exclusiva. Coordinación tiene acceso al equipo y al tablero. Los ejemplos se guardan separados de los datos reales.
+Abre `http://localhost:8080`. Entra como Ana y Luis en pestañas distintas para comprobar la toma exclusiva; Coordinación muestra presencia y plataforma. Los datos demo usan un prefijo separado.
 
-Para comprobar el código con Node.js 22 y Redis de pruebas en el puerto 6380:
+Las resoluciones responden `PENDING_A` hasta conectar la operación atómica de A. La carga completa de 20.000 conexiones no se afirma como ejecutada.
 
-```sh
-npm ci
-docker run -d --name votaciones-c-redis-tests -p 127.0.0.1:6380:6379 redis:7.4-alpine
-npm run check
-npm run validate:deploy
-npm run smoke
-npm run test:browser
-```
+## Difusión pública B
 
-La prueba de navegador utiliza Chrome instalado. `npm run check` comprueba tipos, compila y ejecuta las pruebas contra Redis real, incluida una espera de 30 segundos.
+Rutas: `GET /publico/sse?topics=dep`, `GET /publico/poll?topics=dep`, `WS /ws/publico?topics=dep` y `GET /publico/stats`. El historial vive en Redis Streams; Pub/Sub solo actúa como aviso. La reconexión usa cursores por tópico y full jitter.
 
-Las resoluciones todavía responden `PENDING_A`: no se cambian votos ni se confirma una aprobación sin el módulo de A. También falta medir la difusión pública de B y ejecutar la carga electoral completa de 20.000 conexiones.
+Para desarrollar sin el script de A: `npm run alimentar -w carga -- --redis=<REDIS_URL> --acelerar=60 --reiniciar`.
 
-Los contratos están en [docs/contratos.txt](docs/contratos.txt), los comandos de plataforma en [docs/plataforma.txt](docs/plataforma.txt), los resultados en [docs/pruebas.txt](docs/pruebas.txt) y la carga en [carga/uso.txt](carga/uso.txt). Las capturas y las mediciones se conservan en `docs/evidence/`.
+## Integración pendiente
 
-No se fusionan las ramas del grupo automáticamente. La integración se revisa entre A, B y C antes de pasar a main.
+C se desarrolló desde la base inicial. La reconciliación de esta PR conserva sus pruebas y comandos, pero el traslado de C al `AppModule` y `UpgradeRouter` comunes sigue siendo necesario antes de afirmar que A/B/C ejecutan en un único servidor. Los pasos están en `docs/integracion.txt`.
 
-B publicó su parte durante este desarrollo. La revisión de compatibilidad y los pasos pendientes están en [docs/integracion.txt](docs/integracion.txt).
+Más detalle: `docs/contratos.txt`, `docs/plataforma.txt`, `docs/pruebas.txt`, `carga/uso.txt` y `docs/FLUJO_GIT.md`.

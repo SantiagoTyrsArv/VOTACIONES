@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, isAbsolute } from 'node:path';
 import assert from 'node:assert/strict';
+const dockerBin = process.env.DOCKER_BIN;
+if (!dockerBin || !isAbsolute(dockerBin)) throw new Error('Configure DOCKER_BIN con la ruta absoluta de Docker');
 mkdirSync('carga/results', { recursive: true });
 const points = ['0', '1/4', '1/2', '3/4', '1'];
 const total = Number(process.env.CONNECTIONS || 16);
@@ -35,7 +37,7 @@ await Promise.all(
           `/scripts/results/segment-${index}.json`,
           '/scripts/connections.js',
         ];
-        const child = spawn('docker', args, { stdio: 'inherit' });
+        const child = spawn(dockerBin, args, { stdio: 'inherit' });
         child.on('error', rej);
         child.on('exit', (code) =>
           code === 0 ? res() : rej(new Error(`Generador ${index}: ${code}`)),
