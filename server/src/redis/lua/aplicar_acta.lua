@@ -153,9 +153,15 @@ if ARGV[12] == '1' and redis.call('SISMEMBER', KEYS[23], tostring(acta.mesa)) ==
   return { 'RECHAZADA', '', 'MESA_NO_ASIGNADA' }
 end
 
-local cat = redis.call('HMGET', KEYS[3], 'puesto', 'municipio')
+local cat = redis.call('HMGET', KEYS[3], 'puesto', 'municipio', 'acta')
 if not cat[1] then return { 'RECHAZADA', '', 'MESA_DESCONOCIDA' } end
 if tonumber(cat[1]) ~= acta.puesto or tonumber(cat[2]) ~= acta.municipio then
+  return { 'RECHAZADA', '', 'UBICACION_INCONSISTENTE' }
+end
+-- Una sola acta por mesa: el primer id registrado queda atado a la mesa. Sin
+-- esto, otro id para la misma mesa la sumaría dos veces (y la asignación
+-- jurado → mesa no protegería el id del acta).
+if cat[3] and cat[3] ~= acta.acta then
   return { 'RECHAZADA', '', 'UBICACION_INCONSISTENTE' }
 end
 
@@ -254,6 +260,7 @@ local recibo = cjson.encode({
   instancia = ARGV[5],
 })
 
+redis.call('HSETNX', KEYS[3], 'acta', acta.acta)
 redis.call('HSET', KEYS[2],
   'version', tostring(acta.version),
   'firma', ARGV[4],
