@@ -45,6 +45,16 @@ Requisitos: Node.js ≥ 22 y Docker.
 npm install            # instala todos los workspaces
 npm run redis:up       # Redis 7 local con AOF everysec
 npm test               # pruebas de todos los workspaces
+npm run test:e2e       # PWA: recibo y recuperación offline en Chromium
+```
+
+Para la PWA del jurado, carga primero el catálogo y arranca la ingesta:
+
+```bash
+npm run catalogo --workspace @preconteo/herramientas
+npm run dev --workspace @preconteo/server
+# En otra terminal:
+npm run dev
 ```
 
 Cada módulo explica cómo correrlo en su propio README.
@@ -53,6 +63,7 @@ Cada módulo explica cómo correrlo en su propio README.
 
 - [Contrato compartido](docs/contrato.md): mensajes, claves de Redis y quién escribe qué.
 - [Arquitectura](docs/arquitectura.md): decisiones de transporte, papeles de Redis y reparto.
+- [Informe de ingesta](docs/informe-ingesta.md): idempotencia, convergencia, atomicidad y evidencias de A.
 - [Cómo contribuir](CONTRIBUTING.md): ramas, commits, revisión cruzada.
 
 ## Equipo
