@@ -3,7 +3,7 @@
 ## Ramas
 
 - `main` siempre está desplegable. Nadie hace commit directo a `main`.
-- Una rama por entrega: `persona-a/…`, `persona-b/…`, `persona-c/…`, o `estructura-…` para lo compartido.
+- Una rama por entrega, nombrada por la **acción** y no por la persona: `ingesta-actas`, `difusion-publica`, `verificacion-auditores`, `estructura-y-contrato`…
 - Se integra por pull request.
 
 ## Commits
