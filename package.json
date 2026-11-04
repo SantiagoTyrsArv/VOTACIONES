@@ -1,0 +1,21 @@
+{
+  "name": "votaciones",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Preconteo electoral en tiempo real: WebSocket + SSE + Redis sobre 8 instancias sin sesiones pegajosas",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "shared",
+    "server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run start -w server",
+    "dev": "npm run dev -w server",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}
