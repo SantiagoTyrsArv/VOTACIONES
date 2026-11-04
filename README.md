@@ -7,9 +7,9 @@ atravesando **8 instancias de Node.js sin sesiones pegajosas** que solo se coord
 
 | Integrante | Rol | Responsabilidad |
 |---|---|---|
-| Camila Zambrano | Persona A · Ingesta y consistencia | Jurados, `aplicar_acta.lua`, idempotencia, correcciones, acumulados (RF-1, RF-2, RF-3, RT-6) |
+| Santiago Arévalo | Persona A · Ingesta y consistencia | Jurados, `aplicar_acta.lua`, idempotencia, correcciones, acumulados (RF-1, RF-2, RF-3, RT-6) |
 | David Ramírez | Persona B · Difusión pública | Público: SSE/WS/polling, fan-out por lotes, continuidad, contrapresión, jitter (RF-4, RF-5, RF-6, RF-9, RF-10, RT-4, RT-5, RT-9) |
-| Santiago Arévalo | Persona C · Verificación y plataforma | Auditores, bloqueo y presencia, despliegue con 8 réplicas, métricas, carga (RF-7, RF-8, RT-1, RT-2, RT-3, RT-7, RT-8, RT-10) |
+| Camila Zambrano | Persona C · Verificación y plataforma | Auditores, bloqueo y presencia, despliegue con 8 réplicas, métricas, carga (RF-7, RF-8, RT-1, RT-2, RT-3, RT-7, RT-8, RT-10) |
 
 ## Arquitectura
 

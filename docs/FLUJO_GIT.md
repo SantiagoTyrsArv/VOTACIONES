@@ -9,9 +9,9 @@ por Pull Request (PR) aprobado por otra persona (A revisa a B, B revisa a C, C r
 |---|---|---|
 | `main` | todos (solo por PR) | Lo que está desplegado en Railway |
 | `chore/contrato-esqueleto` | los tres | `shared/` + esqueleto de `server/`. Se fusiona primero |
-| `feature/a-ingesta` | Camila (A) | `server/src/ingesta/`, `jurado/`, scripts Lua |
+| `feature/a-ingesta` | Santiago (A) | `server/src/ingesta/`, `jurado/`, scripts Lua |
 | `feature/b-difusion-publica` | David (B) | `server/src/difusion/`, `publico/`, `carga/publico/` |
-| `feature/c-verificacion-plataforma` | Santiago (C) | `server/src/verificacion/`, `consola/`, despliegue, k6 |
+| `feature/c-verificacion-plataforma` | Camila (C) | `server/src/verificacion/`, `consola/`, despliegue, k6 |
 
 ## Configuración inicial (una sola vez por persona)
 
