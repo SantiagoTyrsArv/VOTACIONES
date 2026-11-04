@@ -42,6 +42,10 @@ export const MOTIVOS_RECHAZO = {
   UBICACION_INCONSISTENTE: 'UBICACION_INCONSISTENTE',
   CONFLICTO_VERSION: 'CONFLICTO_VERSION',
   IDEM_REUTILIZADO: 'IDEM_REUTILIZADO',
+  // Solo en la resolución de un caso de verificación (RF-7).
+  STALE_TOKEN: 'STALE_TOKEN',
+  INVALID_CASE: 'INVALID_CASE',
+  RESOLUCION_CONFLICTO: 'RESOLUCION_CONFLICTO',
 } as const;
 
 export type MotivoRechazo = (typeof MOTIVOS_RECHAZO)[keyof typeof MOTIVOS_RECHAZO];
@@ -57,7 +61,7 @@ export interface Recibo {
   acta: string;
   version: number;
   /** Estado con el que quedó la versión al registrarse. */
-  estado: typeof ESTADOS.REGISTRADA | typeof ESTADOS.DUDOSA_EN_VERIFICACION;
+  estado: typeof ESTADOS.REGISTRADA | typeof ESTADOS.DUDOSA_EN_VERIFICACION | typeof ESTADOS.RECHAZADA;
   idem: string;
   /** Hora de Redis (ms) en que se registró: común a las 8 instancias. */
   ts: number;

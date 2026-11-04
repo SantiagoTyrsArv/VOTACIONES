@@ -20,6 +20,10 @@ const labels: Record<string, string> = {
   UNAUTHORIZED: 'La credencial no es válida.',
   FORBIDDEN: 'Tu perfil no puede realizar esta operación.',
   PENDING_A: 'Resolución sin aplicar: falta conectar el módulo de A. El caso sigue abierto.',
+  APPLIED: 'Resolución aplicada al preconteo. El caso quedó cerrado.',
+  INVALID_CASE: 'El caso ya no coincide con el acta registrada. Consulta el estado actual.',
+  INVALID_VOTES: 'La corrección debe incluir todas las casillas con números enteros.',
+  RESOLUTION_CONFLICT: 'Esta asignación ya se resolvió con otra decisión.',
 };
 const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
 const time = (n: number) =>
@@ -120,7 +124,15 @@ export function App() {
             kind:
               msg.code === 'PENDING_A'
                 ? 'pending'
-                : msg.type === 'error' || ['BUSY', 'STALE_TOKEN', 'INACTIVE'].includes(msg.code)
+                : msg.type === 'error' ||
+                    [
+                      'BUSY',
+                      'STALE_TOKEN',
+                      'INACTIVE',
+                      'INVALID_CASE',
+                      'INVALID_VOTES',
+                      'RESOLUTION_CONFLICT',
+                    ].includes(msg.code)
                   ? 'error'
                   : 'ok',
           });

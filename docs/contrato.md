@@ -63,14 +63,18 @@ Definidas en [`shared/src/claves.ts`](../shared/src/claves.ts). Tópicos: `dep`,
 | `tot:{topico}` | Hash | A | B | casillas, `sufragantes`, `mesas_inf`, `mesas_tot` |
 | `rank:{topico}` | ZSET | A | B | miembro = candidato, score = votos |
 | `st:{topico}` | Stream | A | B | ver §5 |
-| `acta:{id}` | Hash | A | C | `version`, `estado`, `firma`, `votos`, `votos_aplicados`, `recibo`, `conflicto` |
+| `acta:{id}` | Hash | A | C | `version`, `estado`, `firma`, `votos`, `sufragantes`, `hash_foto`, `ts_cierre`, `votos_aplicados`, `recibo`, `conflicto` |
 | `idem:{idem}` | String | A | A | recibo JSON, `EX 86400` |
 | `cat:mesa:{n}` | Hash | A (generador) | A | `puesto`, `municipio` |
 | `seq:recibo` | String | A | — | consecutivo de recibos |
 | `rl:{credencial}:{ventana}` | String | A | — | contador, `EX 60` |
-| `verif:cola` | ZSET | A encola, C toma | C | miembro = id del acta, score = prioridad |
-| `st:verif` | Stream | A y C | C | eventos de la cola |
-| `lock:caso:{acta}`, `fence:caso:{acta}`, `pres:aud`, `pres:info` | — | C | C | bloqueo y presencia |
+| `verif:casos` | Hash | A crea y cierra, C asigna | C | campo = id del acta, valor = `CaseRecord` JSON (ver §8) |
+| `verif:cola` | ZSET | A encola, C toma | C | miembro = id del acta, score = `receivedAt − priority·10¹⁰` (menor = más urgente) |
+| `verif:asignados` | ZSET | C (A retira al cerrar) | C | miembro = id, score = vencimiento de la concesión |
+| `st:verif` | Stream | A y C | C | eventos de la cola: `type`/`tipo`, `caseId`/`acta`, … |
+| `lock:caso:{acta}`, `fence:caso:{acta}` | String | C (A borra el lock al cerrar) | A y C | `{auditor}:{token}` con `PX 30000`; contador de cercado |
+| `pres:aud`, `pres:info` | ZSET, Hash | C | A y C | presencia de auditores |
+| `resolucion:{acta}:{token}` | String | A | A | idempotencia de una resolución: `{ huella, recibo }` |
 
 ## 5. Entradas de `st:{topico}`
 
@@ -100,3 +104,26 @@ Escritas por `aplicar_acta.lua` en los tres tópicos del acta (`pue`, `mun`, `de
 ## 7. Lectura atómica
 
 `leer_topico.lua` devuelve una `Fotografia` (`totales`, `ranking`, `ultimo_id`) en un solo paso, de modo que el snapshot y su id de stream siempre coinciden. B lo usa para `event: snapshot` y para el polling.
+
+## 8. Verificación: casos y resolución (A ↔ C)
+
+**Encolar (A).** Cuando una versión no cuadra (`DUDOSA_EN_VERIFICACION`) o choca con otra de la misma versión (`CONFLICTO_VERSION`), `aplicar_acta.lua` escribe en `verif:casos` un `CaseRecord` con `source: 'A'`, `status: 'pending'` y lo agrega a `verif:cola`, todo en la misma operación que registra el acta. Prioridad: 100 para conflictos; `min(99, 90 + descuadre)` para descuadres.
+
+- Un caso abierto de la **misma versión** se conserva, con su dueño si lo tiene.
+- Una **versión nueva** reemplaza el caso: se borra el lock y el token anterior queda obsoleto.
+- Una versión **válida** del jurado cierra el caso abierto (`resolution.action = 'approve'`, nota «Superada…»).
+
+**Tomar, renovar, liberar (C).** Scripts de [`server/src/verificacion/lua.ts`](../server/src/verificacion/lua.ts) sobre las mismas claves.
+
+**Resolver (C → A).** La consola envía `resolve` con `{ caseId, token, resolution }`. C valida el mensaje y llama a `ResolucionAtomica` ([`server/src/ingesta/resolucion.ts`](../server/src/ingesta/resolucion.ts)), que ejecuta `aplicar_acta.lua` en modo `resolucion`. El script comprueba **dentro de la misma operación** que el caso esté asignado a ese auditor, sesión y token, que `lock:caso` y `fence:caso` coincidan, que el auditor tenga latido de menos de 30 s y actividad de menos de 10 min; luego aplica los votos y cierra el caso.
+
+| `resolution.action` | Efecto en el preconteo | Recibo |
+|---|---|---|
+| `approve` | La mesa suma con los votos del caso | `REGISTRADA` |
+| `correct` | La mesa suma con `resolution.votes` (todas las casillas) | `REGISTRADA` |
+| `reject` | La mesa no suma (o deja de sumar) | `RECHAZADA` |
+
+Respuestas a la consola: `APPLIED` (con `receipt`), `STALE_TOKEN` (la concesión ya no es vigente: un auditor tardío no pisa al dueño nuevo), `INVALID_CASE`, `INVALID_VOTES`, `RESOLUTION_CONFLICT` (la misma toma ya se resolvió con otra decisión) o `UNAVAILABLE`. Repetir la misma orden devuelve el mismo recibo sin volver a sumar.
+
+En `DEMO_MODE=true`, C usa sus casos de ejemplo con el prefijo `demo:` y las resoluciones quedan en `PENDING_A`; la conexión con A se activa con `DEMO_MODE=false`.
+

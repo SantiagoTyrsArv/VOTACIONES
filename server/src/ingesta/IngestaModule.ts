@@ -1,6 +1,7 @@
 import type { AppModule, ModuleContext } from '../infra/AppModule.js';
 import { ConexionRedis } from '../redis/conexion.js';
 import { registrarHttpIngesta } from './http.js';
+import { ResolucionAtomica } from './resolucion.js';
 import { ServicioIngesta } from './servicio.js';
 import { crearWsJurados } from './ws-jurados.js';
 
@@ -9,6 +10,13 @@ export class IngestaModule implements AppModule {
 
   private redis: ConexionRedis | null = null;
   private jurados: ReturnType<typeof crearWsJurados> | null = null;
+
+  /** Adaptador que C usa para aplicar resoluciones de auditores con el Lua de A. */
+  readonly resolucion: ResolucionAtomica;
+
+  constructor(instancia = process.env.RAILWAY_REPLICA_ID ?? process.env.INSTANCE_ID ?? 'local') {
+    this.resolucion = new ResolucionAtomica({ redis: () => this.redis, instancia });
+  }
 
   register(context: ModuleContext): void {
     const redis = new ConexionRedis({
