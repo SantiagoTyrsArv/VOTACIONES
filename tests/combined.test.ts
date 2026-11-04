@@ -134,7 +134,10 @@ test('B y C comparten servidor: SSE, WS, polling, reconexión y métricas entre 
       own.reduce((n, m) => n + m.connections, 0),
       4,
     );
-    const prometheus = await (await fetch(url1 + '/metrics')).text();
+    assert.equal((await fetch(url1 + '/metrics')).status, 401);
+    const prometheus = await (
+      await fetch(url1 + '/metrics', { headers: { Authorization: 'Bearer demo-coord' } })
+    ).text();
     assert.match(prometheus, /public_messages_sent_total/);
     assert.match(prometheus, /votaciones_connections/);
     assert.equal((await a.request({ type: 'heartbeat', active: true }))?.type, 'ack');

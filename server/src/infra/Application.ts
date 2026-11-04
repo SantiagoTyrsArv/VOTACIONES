@@ -1,7 +1,8 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Registry, collectDefaultMetrics } from 'prom-client';
 import type { AppConfig } from '../config/AppConfig.js';
-import type { AppModule, ModuleContext } from './AppModule.js';
+import { timingSafeEqual } from 'node:crypto';
+import type { AppModule, MetricsAuthorizer, ModuleContext } from './AppModule.js';
 import { RedisConnections } from './RedisConnections.js';
 import { RedisHealthMonitor, withTimeout } from './RedisHealthMonitor.js';
 import { UpgradeRouter } from './UpgradeRouter.js';
@@ -16,6 +17,7 @@ export class Application {
   private readonly health: RedisHealthMonitor;
   private readonly upgrades = new UpgradeRouter();
   private readonly metrics = new Registry();
+  private readonly metricsAuthorizers: MetricsAuthorizer[] = [];
 
   constructor(
     private readonly config: AppConfig,
@@ -55,6 +57,7 @@ export class Application {
       redis: this.redis,
       health: this.health,
       metrics: this.metrics,
+      authorizeMetrics: (authorizer) => this.metricsAuthorizers.push(authorizer),
     };
     for (const module of this.modules) {
       await module.register(context);
@@ -119,8 +122,26 @@ export class Application {
         .code(ready ? 200 : 503)
         .send({ ready, redis: ready ? 'ok' : 'caido', instance: this.config.instanceId });
     });
-    this.http.get('/metrics', async (_request, reply) => {
+    // Las métricas revelan carga y topología: con METRICS_TOKEN o un autorizador de módulo
+    // (coordinador de C) exigen Bearer; sin ninguno quedan abiertas solo para desarrollo local.
+    this.http.get('/metrics', async (request, reply) => {
+      if (!this.canReadMetrics(request.headers.authorization)) {
+        return reply.code(401).header('WWW-Authenticate', 'Bearer').send({ code: 'UNAUTHORIZED' });
+      }
       return reply.type(this.metrics.contentType).send(await this.metrics.metrics());
     });
+  }
+
+  private canReadMetrics(authorization: string | undefined): boolean {
+    const expected = this.config.string('METRICS_TOKEN', '');
+    if (!expected && this.metricsAuthorizers.length === 0) return true;
+    const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : '';
+    if (!token) return false;
+    if (expected) {
+      const a = Buffer.from(token);
+      const b = Buffer.from(expected);
+      if (a.length === b.length && timingSafeEqual(a, b)) return true;
+    }
+    return this.metricsAuthorizers.some((authorize) => authorize(token));
   }
 }

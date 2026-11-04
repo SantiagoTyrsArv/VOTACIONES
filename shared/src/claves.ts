@@ -42,7 +42,14 @@ export const claves = {
   // ── Límite de tasa: ventana fija de 60 s por credencial
   limite: (credencial: string, ventana: number) => `rl:${credencial}:${ventana}`,
   // ── Verificación (dueño C; A encola dudosas y conflictos)
+  verifCasos: () => 'verif:casos',
   verifCola: () => 'verif:cola',
+  verifAsignados: () => 'verif:asignados',
+  lockCaso: (id: string) => `lock:caso:${id}`,
+  fenceCaso: (id: string) => `fence:caso:${id}`,
+  presAud: () => 'pres:aud',
+  presInfo: () => 'pres:info',
+  resolucion: (id: string) => `resolucion:${id}`,
   streamVerif: () => 'st:verif',
 } as const;
 

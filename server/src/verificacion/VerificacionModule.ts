@@ -94,6 +94,8 @@ async function registerVerification(
   }
   const bearer = (authorization?: string) =>
     authorization?.startsWith('Bearer ') ? authorization.slice(7) : '';
+  // /metrics (Prometheus) solo para coordinación, como /api/metrics.
+  context.authorizeMetrics((token) => credentialIdentity(token)?.role === 'coordinator');
   app.get('/api/state', async (req, reply) => {
     if (!credentialIdentity(bearer(req.headers.authorization)))
       return reply.code(401).send({ code: 'UNAUTHORIZED' });
