@@ -10,7 +10,8 @@
   "workspaces": [
     "shared",
     "server",
-    "publico"
+    "publico",
+    "carga"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

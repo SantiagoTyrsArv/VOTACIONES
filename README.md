@@ -110,6 +110,41 @@ npm test
 
 Rutas comunes de cada instancia: `/whoami` (RT-1), `/live`, `/ready` (503 si Redis no responde), `/metrics` (Prometheus).
 
+## Difusión pública (Persona B)
+
+```mermaid
+flowchart LR
+    R[(Redis<br/>st:* streams<br/>tot:* hashes)] -- "PUBLISH ch:actas (timbre)" --> T[DirtyTopicTracker]
+    T --> S["AggregationScheduler<br/>ventana 2 s · 5 s dep"]
+    R -- "XRANGE (cursor +" --> S
+    S --> C["DeltaCondenser<br/>N actas → 1 mensaje"]
+    C --> B["PublicBroadcaster<br/>lotes de 500 / 5 ms<br/>+ contrapresión"]
+    B --> G["TopicRegistry<br/>Map&lt;tópico, Set&lt;conexión&gt;&gt;"]
+    G --> P1[SSE] & P2[WebSocket]
+    N[Cliente reconecta<br/>?cursor=dep@id,mun:11@id] --> U["CatchUpService<br/>delta o fotografía"]
+    R --> U
+```
+
+| Ruta | Uso |
+|---|---|
+| `GET /publico/` | Página pública (`?mun=11`, `?pue=176`, `?transporte=sse\|ws\|poll`) |
+| `GET /publico/sse?topics=dep,mun:11&cursor=...` | Server-Sent Events (transporte del público) |
+| `GET /publico/poll?topics=...&cursor=...` | Polling (respaldo y comparación) |
+| `WS /ws/publico?topics=...&cursor=...` | WebSocket (solo para comparar transportes) |
+| `GET /publico/stats` | Conexiones, mensajes reales vs. ingenuos, retraso del Event Loop |
+
+Decisiones clave:
+
+- **Un mensaje por tópico y ventana**, con valores **absolutos** de los campos que cambiaron: idempotente y sin huecos aunque un cliente se salte deltas.
+- **Cursor por tópico** (`tópico@idDeStream`): cada mensaje lleva el id de su tópico y el cliente arma el cursor compuesto, que envía en `?cursor=` al reconectar. Los ids de Redis Streams son comunes a las 8 instancias, así que se puede reconectar a cualquiera.
+- **Fotografía** en lugar de detalle si el cursor fue recortado, hay más de 200 entradas pendientes o la ausencia supera 5 min. Si una fotografía baja un número, la página muestra un aviso de correcciones.
+- **Pub/Sub solo como timbre**: la fuente de verdad son los Streams; además se releen cada 15 s por si se pierde un aviso.
+- **Reconexión con full jitter** y rotación SSE entre 12 y 14 min (Railway corta a los 15 min).
+- **Contrapresión**: más de 64 KB pendientes deja la conexión atrasada; por debajo de 16 KB se le manda una fotografía; más de 1 MB o 60 s atrasada se desconecta con orden de reconexión.
+
+Para desarrollar sin el script de A: `npm run alimentar -w carga -- --redis=<REDIS_URL> --acelerar=60 --reiniciar`
+(imita `aplicar_acta.lua` con el mismo contrato de `shared/`).
+
 ## Flujo de trabajo con Git
 
 Ver [docs/FLUJO_GIT.md](docs/FLUJO_GIT.md).
