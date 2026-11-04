@@ -6,16 +6,23 @@
   "type": "module",
   "workspaces": [
     "shared",
-    "server"
+    "server",
+    "jurado",
+    "herramientas"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev --workspace @preconteo/jurado --",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test",
     "redis:up": "docker compose up -d redis",
     "redis:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
   }
 }
