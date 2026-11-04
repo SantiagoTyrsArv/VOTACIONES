@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { identitySchema, type Identity } from '@votaciones/shared/verificacion';
+import { idDeReplica } from '../config/AppConfig.js';
 
 export type Config = {
   redisUrl: string;
@@ -35,8 +36,7 @@ export function readConfig(): Config {
     throw new Error('Configure AUDITOR_CREDENTIALS_JSON o habilite DEMO_MODE=true para pruebas');
   return {
     redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
-    instance:
-      process.env.RAILWAY_REPLICA_ID || process.env.INSTANCE_ID || `c-${randomUUID().slice(0, 8)}`,
+    instance: idDeReplica() || `c-${randomUUID().slice(0, 8)}`,
     port: Number(process.env.PORT || 3000),
     host: process.env.HOST || '0.0.0.0',
     demo,

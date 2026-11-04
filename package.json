@@ -34,9 +34,9 @@
     "test:browser": "node scripts/browser-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "validate:deploy": "tsx scripts/validate-deploy.ts",
     "smoke:chaos": "tsx scripts/chaos-smoke.ts",
-    "test:c": "tsx --conditions=development --test --test-concurrency=1 tests/*.test.ts"
+    "test:c": "tsx --conditions=development --test --test-concurrency=1 tests/*.test.ts",
+    "validate:deploy": "az bicep build --file deploy/azure/main.bicep --stdout"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
@@ -47,7 +47,6 @@
     "@vitejs/plugin-react": "^5.1.0",
     "playwright": "^1.64.1",
     "prettier": "^3.7.4",
-    "railway": "^3.16.0",
     "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vite": "^7.2.0"

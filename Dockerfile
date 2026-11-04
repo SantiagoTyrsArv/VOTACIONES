@@ -22,6 +22,9 @@ COPY --from=build --chown=node:node /app/shared/package.json ./shared/package.js
 COPY --from=build --chown=node:node /app/shared/dist ./shared/dist
 COPY --from=build --chown=node:node /app/publico/dist ./publico/dist
 COPY --from=build --chown=node:node /app/jurado/dist ./jurado/dist
+# Herramientas (catálogo y jornada) para los Jobs de Azure Container Apps.
+COPY --from=build --chown=node:node /app/herramientas/package.json ./herramientas/package.json
+COPY --from=build --chown=node:node /app/herramientas/dist ./herramientas/dist
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/web-dist ./web-dist
 USER node

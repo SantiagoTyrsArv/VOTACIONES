@@ -7,7 +7,7 @@ por Pull Request (PR) aprobado por otra persona (A revisa a B, B revisa a C, C r
 
 | Rama | Dueño | Contenido |
 |---|---|---|
-| `main` | todos (solo por PR) | Lo que está desplegado en Railway |
+| `main` | todos (solo por PR) | Lo que está desplegado en Azure Container Apps |
 | `chore/contrato-esqueleto` | los tres | `shared/` + esqueleto de `server/`. Se fusiona primero |
 | `feature/a-ingesta` | Santiago (A) | `server/src/ingesta/`, `jurado/`, scripts Lua |
 | `feature/b-difusion-publica` | David (B) | `server/src/difusion/`, `publico/`, `carga/publico/` |
