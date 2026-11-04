@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export * from './verificacion-constantes.js';
+// Propuesta v1: pendiente de revisión conjunta con A y B.
+export * from './constants.js';
 export const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
 export const identitySchema = z.object({
   id: identifier,
@@ -100,6 +101,8 @@ export type InstanceMetrics = {
   sampledAt: number;
   uptimeSeconds: number;
   connections: number;
+  verificationConnections: number;
+  publicConnections: number;
   messagesIn: number;
   messagesOut: number;
   messagesPerSecond: number;

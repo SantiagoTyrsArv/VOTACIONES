@@ -11,8 +11,9 @@ const browser = await chromium.launch({
 const ana = await browser.newContext({ viewport: { width: 1440, height: 1050 } });
 const luis = await browser.newContext({ viewport: { width: 1440, height: 1050 } });
 const coord = await browser.newContext({ viewport: { width: 1440, height: 1050 } });
+const publico = await browser.newContext({ viewport: { width: 1440, height: 1050 } });
 const errors = [];
-for (const ctx of [ana, luis, coord])
+for (const ctx of [ana, luis, coord, publico])
   ctx.on('page', (p) => p.on('pageerror', (e) => errors.push(e.message)));
 const a = await ana.newPage(),
   b = await luis.newPage(),
@@ -42,16 +43,40 @@ try {
   await a.screenshot({ path: `${output}/consola-verificacion.png`, fullPage: true });
   result.checks.push('La resolución pendiente no se presenta como aplicada');
 
+  for (const [transport, label] of [
+    ['sse', 'SSE'],
+    ['ws', 'WebSocket'],
+    ['poll', 'Polling 2 s'],
+  ]) {
+    const page = await publico.newPage();
+    await page.goto(`http://127.0.0.1:8080/publico/?transporte=${transport}`);
+    await page.waitForFunction(
+      () => document.querySelector('[data-fase]')?.textContent === 'En vivo',
+    );
+    await page.waitForFunction(() =>
+      /^c-local-[12]$/.test(document.querySelector('[data-instancia]')?.textContent ?? ''),
+    );
+    assert.equal(await page.locator('[data-transporte]').textContent(), label);
+    assert.match(await page.locator('[data-instancia]').textContent(), /^c-local-[12]$/);
+    if (transport === 'sse')
+      await page.screenshot({ path: `${output}/publico-integrado.png`, fullPage: true });
+  }
+  result.checks.push(
+    'Página pública de B por SSE, WebSocket y polling detrás del mismo balanceador',
+  );
+
   await c.goto('http://127.0.0.1:8080');
   await c.getByRole('button', { name: 'Coordinación', exact: true }).click();
   await c.getByRole('button', { name: 'Plataforma', exact: false }).click();
   await c.getByRole('cell', { name: 'c-local-1', exact: true }).waitFor();
   await c.getByRole('cell', { name: 'c-local-2', exact: true }).waitFor();
   await c.waitForFunction(
-    () => Number(document.querySelectorAll('.stat strong')[1]?.textContent) >= 3,
+    () => Number(document.querySelectorAll('.stat strong')[1]?.textContent) >= 5,
   );
   await c.screenshot({ path: `${output}/plataforma.png`, fullPage: true });
-  result.checks.push('El tablero muestra métricas de las dos réplicas y pendientes de A/B');
+  result.checks.push(
+    'El tablero suma tres conexiones de C y dos públicas, con métricas de ambas réplicas',
+  );
   await a.setViewportSize({ width: 390, height: 844 });
   assert.ok(await a.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await a.screenshot({ path: `${output}/consola-movil.png`, fullPage: true });

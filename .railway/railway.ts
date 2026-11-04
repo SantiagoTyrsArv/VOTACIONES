@@ -14,7 +14,7 @@ export default defineRailway((ctx) => {
   const app = service('votaciones', {
     source: github('SantiagoTyrsArv/VOTACIONES', { branch: 'feature/persona-c' }),
     build: { builder: 'DOCKERFILE', dockerfilePath: 'Dockerfile' },
-    start: 'node dist/server/index.js',
+    start: 'node server/dist/main.js',
     replicas: 8,
     healthcheck: '/ready',
     healthcheckTimeout: 60,

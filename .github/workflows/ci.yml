@@ -1,13 +1,17 @@
-name: Persona C
+name: CI
 on:
   push:
-    branches: [feature/persona-c]
+    branches: [main]
   pull_request:
     paths:
       [
         'server/**',
         'shared/**',
         'web/**',
+        'jurado/**',
+        'herramientas/**',
+        'e2e/**',
+        'publico/**',
         'tests/**',
         'scripts/**',
         'carga/**',
@@ -15,11 +19,14 @@ on:
         'package*.json',
         'tsconfig*.json',
         'Dockerfile',
-        '.github/workflows/persona-c.yml',
+        '.github/workflows/ci.yml',
       ]
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      # Las pruebas de ingesta (A) usan la base 15; las de C, la base 0 del mismo Redis.
+      REDIS_URL_PRUEBAS: redis://localhost:6380/15
     services:
       redis:
         image: redis:7.4-alpine
@@ -33,7 +40,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm audit --omit=dev
       - run: npm run carga:plan

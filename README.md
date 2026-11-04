@@ -76,7 +76,8 @@ npm start
 En desarrollo, cada proceso se arranca en una terminal distinta:
 
 ```bash
-npm run dev           # instancia integrada: ingesta + difusión
+npm run dev           # instancia integrada: ingesta + difusión + verificación
+npm run dev:console   # consola de auditores
 npm run dev:jurado    # PWA del jurado
 npm run dev:publico   # página pública
 ```
@@ -133,3 +134,16 @@ npm run alimentar --workspace @votaciones/carga -- --redis=redis://localhost:637
 - [Informe de ingesta](docs/informe-ingesta.md)
 - [Flujo de trabajo con Git](docs/FLUJO_GIT.md)
 - [Cómo contribuir](CONTRIBUTING.md)
+
+## Verificación y entorno local (Persona C)
+
+```sh
+docker compose up -d --build
+docker compose run --rm seed
+```
+
+Consola: [localhost:8080](http://localhost:8080). Página pública: [localhost:8080/publico/](http://localhost:8080/publico/). Ana y Luis permiten probar la toma exclusiva en pestañas separadas; Coordinación muestra las réplicas. Cada instancia ejecuta B y C en el mismo servidor.
+
+Con Node 22 y Redis de pruebas en el puerto 6380: `npm ci` y `npm run check`. Las pruebas de navegador requieren Chrome: `npm run test:browser`.
+
+Las resoluciones permanecen en `PENDING_A` hasta conectar la aplicación atómica de A. Los comandos, contratos y resultados están en [docs/plataforma.txt](docs/plataforma.txt), [docs/contratos.txt](docs/contratos.txt), [docs/pruebas.txt](docs/pruebas.txt) y [docs/integracion.txt](docs/integracion.txt). La carga completa de 20.000 conexiones sigue pendiente.

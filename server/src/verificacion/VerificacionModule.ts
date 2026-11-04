@@ -1,11 +1,11 @@
-import Fastify from 'fastify';
-import websocket from '@fastify/websocket';
+import type { IncomingMessage } from 'node:http';
+import type { ModuleContext, AppModule } from '../infra/AppModule.js';
 import fastifyStatic from '@fastify/static';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { setImmediate as yieldLoop } from 'node:timers/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { WebSocket } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import {
   caseInputSchema,
   clientMessageSchema,
@@ -13,26 +13,36 @@ import {
   type Identity,
   type ServerMessage,
   type Snapshot,
-} from '../shared/contracts.js';
+} from '@votaciones/shared/verificacion';
 import type { Config } from './config.js';
 import { VerificationStore, type Actor } from './store.js';
 import { PendingAAdapter, receiveDoubtfulCase, type ResolutionAdapter } from './integration.js';
-import { RuntimeMetrics } from './metrics.js';
+import { RuntimeMetrics, type PublicStatsSource } from './metrics.js';
 
 const equalSecret = (left: string, right: string) => {
   const a = Buffer.from(left),
     b = Buffer.from(right);
   return a.length === b.length && timingSafeEqual(a, b);
 };
-export async function buildApp(config: Config, adapter: ResolutionAdapter = new PendingAAdapter()) {
-  const app = Fastify({
-    logger: config.log
-      ? { redact: ['req.headers.authorization', 'req.headers.cookie', 'credential'] }
-      : false,
-    bodyLimit: 32768,
+async function registerVerification(
+  context: ModuleContext,
+  config: Config,
+  adapter: ResolutionAdapter,
+  publicStats?: PublicStatsSource,
+) {
+  const app = context.http;
+  const store = new VerificationStore(config, context.redis);
+  const metrics = new RuntimeMetrics(store, context.metrics, publicStats);
+  const wsServer = new WebSocketServer({
+    noServer: true,
+    maxPayload: 16384,
+    perMessageDeflate: false,
   });
-  const store = new VerificationStore(config),
-    metrics = new RuntimeMetrics(store);
+  const route = (path: string, handler: (socket: WebSocket, req: IncomingMessage) => void) => {
+    context.upgrades.register(path, (request, socket, head) => {
+      wsServer.handleUpgrade(request, socket, head, (ws) => handler(ws, request));
+    });
+  };
   const connections = new Set<WebSocket>();
   let stopping = false,
     broadcastPending = false,
@@ -77,26 +87,6 @@ export async function buildApp(config: Config, adapter: ResolutionAdapter = new 
       demo: config.demo,
     };
   };
-  await store.open(() => {
-    void notify();
-  });
-  await app.register(websocket, { options: { maxPayload: 16384, perMessageDeflate: false } });
-  app.addHook('onRequest', async (_req, reply) => {
-    reply.header('X-Instance-Id', config.instance);
-    reply.header('Cache-Control', 'no-store');
-  });
-  app.get('/live', async () => ({ status: 'live', instance: config.instance }));
-  app.get('/ready', async (_req, reply) => {
-    if (stopping || !store.redis.isReady || !store.subscriber.isReady)
-      return reply.code(503).send({ status: 'unready', instance: config.instance });
-    try {
-      await store.run(() => store.redis.ping(), true);
-      return { status: 'ready', instance: config.instance };
-    } catch {
-      return reply.code(503).send({ status: 'unready', instance: config.instance });
-    }
-  });
-  app.get('/whoami', async () => ({ instance: config.instance, demo: config.demo, protocol: 1 }));
   function credentialIdentity(credential: string): Identity | undefined {
     return Object.hasOwn(config.credentials, credential)
       ? config.credentials[credential]
@@ -115,13 +105,11 @@ export async function buildApp(config: Config, adapter: ResolutionAdapter = new 
     return {
       instances: await metrics.all(),
       expectedReplicas: Number(process.env.EXPECTED_REPLICAS || 2),
-      pending: ['actas/min: conectar A', 'latencia acta → público: conectar B'],
+      pending: [
+        'actas/min: conectar A',
+        'latencia acta → público: validar con la ingesta real de A',
+      ],
     };
-  });
-  app.get('/metrics', async (req, reply) => {
-    if (credentialIdentity(bearer(req.headers.authorization))?.role !== 'coordinator')
-      return reply.code(403).send({ code: 'FORBIDDEN' });
-    return reply.type(metrics.registry.contentType).send(await metrics.registry.metrics());
   });
   app.post('/api/integration/cases', async (req, reply) => {
     if (
@@ -136,7 +124,7 @@ export async function buildApp(config: Config, adapter: ResolutionAdapter = new 
     return reply.code(result.code === 'CASE_CONFLICT' ? 409 : 200).send(result);
   });
   for (const path of ['/ws/auditor', '/ws/auditors'])
-    app.get(path, { websocket: true }, (socket, req) => {
+    route(path, (socket, req) => {
       const origin = req.headers.origin;
       if (
         origin &&
@@ -315,7 +303,7 @@ export async function buildApp(config: Config, adapter: ResolutionAdapter = new 
     });
   // Banco de transporte: nunca ingresa actas ni adquiere permisos de auditor.
   if (config.demo)
-    app.get('/ws/load', { websocket: true }, (socket) => {
+    route('/ws/load', (socket) => {
       metrics.connections++;
       socket.on('message', (raw) => {
         metrics.received();
@@ -329,41 +317,82 @@ export async function buildApp(config: Config, adapter: ResolutionAdapter = new 
         metrics.connections--;
       });
     });
-  const staticRoot = resolve('web-dist');
+  const staticRoot = resolve(context.config.string('CONSOLE_DIR', 'web-dist'));
   if (existsSync(staticRoot))
-    await app.register(fastifyStatic, { root: staticRoot, prefix: '/', index: 'index.html' });
-  const sweepTimer = setInterval(() => {
-    if (sweepBusy || stopping) return;
-    sweepBusy = true;
-    void store
-      .sweep()
-      .catch((err) => app.log.error({ err }, 'Falló el barrido'))
-      .finally(() => {
-        sweepBusy = false;
+    await app.register(fastifyStatic, {
+      root: staticRoot,
+      prefix: '/',
+      index: 'index.html',
+      decorateReply: false,
+    });
+  return {
+    store,
+    metrics,
+    snapshot,
+    async start() {
+      await store.open(() => {
+        void notify();
       });
-  }, 5000);
-  timers.push(sweepTimer);
-  await metrics.publish();
-  timers.push(
-    setInterval(() => {
-      if (metricsBusy || stopping) return;
-      metricsBusy = true;
-      void metrics
-        .publish()
-        .catch(() => {})
-        .finally(() => {
-          metricsBusy = false;
-        });
-    }, 5000),
-  );
-  app.addHook('preClose', async () => {
-    stopping = true;
-    timers.forEach(clearInterval);
-    for (const client of app.websocketServer.clients) client.terminate();
-  });
-  app.addHook('onClose', async () => {
-    metrics.close();
-    await store.close();
-  });
-  return { app, store, metrics, snapshot };
+      const sweepTimer = setInterval(() => {
+        if (sweepBusy || stopping) return;
+        sweepBusy = true;
+        void store
+          .sweep()
+          .catch((err) => app.log.error({ err }, 'Falló el barrido'))
+          .finally(() => {
+            sweepBusy = false;
+          });
+      }, 5000);
+      timers.push(sweepTimer);
+      await metrics.publish().catch(() => {});
+      timers.push(
+        setInterval(() => {
+          if (metricsBusy || stopping) return;
+          metricsBusy = true;
+          void metrics
+            .publish()
+            .catch(() => {})
+            .finally(() => {
+              metricsBusy = false;
+            });
+        }, 5000),
+      );
+    },
+    async stop() {
+      stopping = true;
+      timers.forEach(clearInterval);
+      for (const client of wsServer.clients) client.terminate();
+      wsServer.close();
+      metrics.close();
+      await store.close();
+    },
+  };
+}
+
+export class VerificacionModule implements AppModule {
+  readonly name = 'verificacion';
+  private runtime!: Awaited<ReturnType<typeof registerVerification>>;
+  constructor(
+    private readonly config: Config,
+    private readonly adapter: ResolutionAdapter = new PendingAAdapter(),
+    private readonly publicStats?: PublicStatsSource,
+  ) {}
+  get store() {
+    return this.runtime.store;
+  }
+  get metrics() {
+    return this.runtime.metrics;
+  }
+  get snapshot() {
+    return this.runtime.snapshot;
+  }
+  async register(context: ModuleContext) {
+    this.runtime = await registerVerification(context, this.config, this.adapter, this.publicStats);
+  }
+  async start() {
+    await this.runtime.start();
+  }
+  async stop() {
+    await this.runtime.stop();
+  }
 }

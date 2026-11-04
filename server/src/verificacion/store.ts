@@ -1,3 +1,4 @@
+import { RedisKeys, RedisChannels } from '@votaciones/shared';
 import { createClient } from 'redis';
 import {
   caseInputSchema,
@@ -6,7 +7,7 @@ import {
   type CaseRecord,
   type Identity,
   type Presence,
-} from '../shared/contracts.js';
+} from '@votaciones/shared/verificacion';
 import { caseScripts, presenceScript } from './lua.js';
 import type { Config } from './config.js';
 
@@ -17,12 +18,26 @@ export class VerificationStore {
   readonly redis: RedisConnection;
   readonly subscriber: RedisConnection;
   private blockedUntil = 0;
-  constructor(readonly config: Config) {
+  private readonly ownsConnections: boolean;
+  private onChange?: () => void;
+  private onReady?: () => void;
+  private retry?: NodeJS.Timeout;
+  private subscribed = false;
+  private subscribing = false;
+  constructor(
+    readonly config: Config,
+    shared?: { commands: RedisConnection; subscriber: RedisConnection },
+  ) {
+    this.ownsConnections = !shared;
+    if (shared) {
+      this.redis = shared.commands;
+      this.subscriber = shared.subscriber;
+      return;
+    }
     this.redis = createClient({
       url: config.redisUrl,
       disableOfflineQueue: true,
       commandsQueueMaxLength: 1000,
-      commandOptions: { timeout: 300 },
       socket: {
         connectTimeout: 2000,
         reconnectStrategy: (retries) => Math.min(100 * (retries + 1), 2000),
@@ -55,31 +70,65 @@ export class VerificationStore {
     // nunca una confirmación, y el cliente recupera la fotografía antes de decidir.
   }
   async open(onChange: () => void) {
-    await this.redis.connect();
-    await this.subscriber.connect();
-    await this.subscriber.subscribe(this.key('ch:verif'), onChange);
-    // Pub/Sub solo avisa; la fotografía en Redis siempre es la fuente de verdad.
-    this.subscriber.on('ready', onChange);
+    this.onChange = onChange;
+    const subscribe = async () => {
+      if (this.subscribed || this.subscribing || !this.subscriber.isReady) return;
+      this.subscribing = true;
+      try {
+        await this.run(
+          () => this.subscriber.subscribe(this.key(RedisChannels.verification), onChange),
+          true,
+        );
+        this.subscribed = true;
+        onChange();
+      } catch {
+        /* Se reintenta sin detener los otros módulos. */
+      } finally {
+        this.subscribing = false;
+      }
+    };
+    this.onReady = () => {
+      if (this.subscribed) onChange();
+      else void subscribe();
+    };
+    this.subscriber.on('ready', this.onReady);
+    if (this.ownsConnections) {
+      await this.redis.connect();
+      await this.subscriber.connect();
+    }
+    await subscribe();
+    this.retry = setInterval(() => {
+      void subscribe();
+    }, 1000);
+    this.retry.unref();
   }
   async close() {
-    await Promise.all(
-      [this.redis, this.subscriber].map(async (client) => {
-        if (client.isOpen) client.destroy();
-      }),
-    );
+    if (this.retry) clearInterval(this.retry);
+    if (this.onReady) this.subscriber.off('ready', this.onReady);
+    if (this.ownsConnections) {
+      await Promise.allSettled(
+        [this.redis, this.subscriber].map((c) => (c.isOpen ? c.disconnect() : undefined)),
+      );
+    } else if (this.subscriber.isReady && this.onChange) {
+      const listener = this.onChange;
+      await this.run(
+        () => this.subscriber.unsubscribe(this.key(RedisChannels.verification), listener),
+        true,
+      ).catch(() => {});
+    }
   }
   caseKeys(id: string) {
     identifier.parse(id);
     return [
       'verif:casos',
-      'verif:cola',
+      RedisKeys.verificationQueue,
       'verif:asignados',
-      `lock:caso:${id}`,
-      `fence:caso:${id}`,
-      'st:verif',
-      'ch:verif',
-      'pres:aud',
-      'pres:info',
+      RedisKeys.caseLock(id),
+      RedisKeys.caseFence(id),
+      RedisKeys.verificationStream,
+      RedisChannels.verification,
+      RedisKeys.presenceIndex,
+      RedisKeys.presenceInfo,
     ].map((k) => this.key(k));
   }
   async operation(
@@ -114,13 +163,15 @@ export class VerificationStore {
       : {};
     return this.run(() =>
       this.redis.eval(presenceScript, {
-        keys: ['pres:aud', 'pres:info', 'ch:verif'].map((k) => this.key(k)),
+        keys: [RedisKeys.presenceIndex, RedisKeys.presenceInfo, RedisChannels.verification].map(
+          (k) => this.key(k),
+        ),
         arguments: [op, actor?.identity.id || '', actor?.sessionId || '', JSON.stringify(info)],
       }),
     ) as Promise<string>;
   }
   async people(): Promise<Presence[]> {
-    const values = await this.run(() => this.redis.hGetAll(this.key('pres:info')));
+    const values = await this.run(() => this.redis.hGetAll(this.key(RedisKeys.presenceInfo)));
     const now = await this.now();
     return Object.values(values)
       .map((v) => JSON.parse(v) as Presence)

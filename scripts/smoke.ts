@@ -18,7 +18,7 @@ try {
     a.request({ type: 'take', caseId: item.id }),
     b.request({ type: 'take', caseId: item.id }),
   ]);
-  assert.deepEqual(results.map((r) => r?.code).sort(), ['BUSY', 'TAKEN']);
+  assert.deepEqual(results.map((r) => r?.code).sort((a, b) => (a ?? '').localeCompare(b ?? '')), ['BUSY', 'TAKEN']);
   const winner = results[0]?.code === 'TAKEN' ? a : b,
     token = results.find((r) => r?.code === 'TAKEN')!.token!;
   assert.equal(

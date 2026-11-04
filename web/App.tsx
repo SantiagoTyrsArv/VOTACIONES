@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { IDLE_STOP_MS, IDLE_WARNING_MS } from '../shared/constants';
+import { IDLE_STOP_MS, IDLE_WARNING_MS } from '@votaciones/shared/verificacion';
 import type {
   CaseRecord,
   Identity,
   InstanceMetrics,
   ServerMessage,
   Snapshot,
-} from '../shared/contracts';
+} from '@votaciones/shared/verificacion';
 
 const labels: Record<string, string> = {
   TAKEN: 'Caso asignado. Puedes comenzar la revisión.',
@@ -28,8 +28,13 @@ const time = (n: number) =>
     minute: '2-digit',
     second: '2-digit',
   });
+const validCredential = (value: string | null): value is string =>
+  value !== null && /^[A-Za-z0-9._~-]{4,256}$/.test(value);
 export function App() {
-  const [credential, setCredential] = useState(() => sessionStorage.getItem('c-credential') || '');
+  const [credential, setCredential] = useState(() => {
+    const stored = sessionStorage.getItem('c-credential');
+    return validCredential(stored) ? stored : '';
+  });
   const [input, setInput] = useState(''),
     [demo, setDemo] = useState(false),
     [identity, setIdentity] = useState<Identity>();
@@ -182,9 +187,14 @@ export function App() {
     };
   }, [credential, identity?.role]);
   const login = (value: string) => {
-    sessionStorage.setItem('c-credential', value);
+    const normalized = value.trim();
+    if (!validCredential(normalized)) {
+      setNotice({ text: 'La credencial contiene caracteres no permitidos.', kind: 'error' });
+      return;
+    }
+    sessionStorage.setItem('c-credential', normalized);
     setNotice(undefined);
-    setCredential(value);
+    setCredential(normalized);
   };
   const logout = () => {
     sessionStorage.removeItem('c-credential');
@@ -502,7 +512,7 @@ export function App() {
                 <Stat
                   label="CONEXIONES"
                   value={metrics.reduce((n, m) => n + m.connections, 0)}
-                  sub="WebSockets de C y banco de carga"
+                  sub="Auditores, público y banco de carga"
                 />
                 <Stat
                   label="MENSAJES / SEGUNDO"
@@ -539,7 +549,11 @@ export function App() {
                             <span className={`dot ${now - m.sampledAt < 15000 ? 'green' : ''}`} />
                             {m.instance}
                           </td>
-                          <td>{m.connections}</td>
+                          <td
+                            title={`Auditores y eco: ${m.verificationConnections}; público: ${m.publicConnections}`}
+                          >
+                            {m.connections}
+                          </td>
                           <td>{m.messagesPerSecond.toFixed(1)}</td>
                           <td>
                             {mb(m.rssBytes)} / {mb(m.heapBytes)} MB
@@ -564,11 +578,11 @@ export function App() {
                   <p>El contador se conectará después de la aplicación real de cada acta.</p>
                 </article>
                 <article className="panel">
-                  <span className="badge amber">PENDIENTE · B</span>
+                  <span className="badge amber">PENDIENTE · A + B</span>
                   <h3>Latencia acta → público</h3>
                   <p>
-                    Se medirá cuando exista emisión pública. La carga de eco no acredita esta
-                    latencia.
+                    Falta conectar el ingreso real de A con la publicación de B. El eco no acredita
+                    esta latencia.
                   </p>
                 </article>
               </div>

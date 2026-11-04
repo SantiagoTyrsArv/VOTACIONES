@@ -16,6 +16,7 @@ export class RedisHealthMonitor extends EventEmitter<{ change: [RedisHealthChang
   /** null = aún sin sondear; así el primer resultado siempre se notifica. */
   private healthy: boolean | null = null;
   private sinceMs = Date.now();
+  private probing?: Promise<boolean>;
   private timer: NodeJS.Timeout | null = null;
 
   constructor(
@@ -35,8 +36,8 @@ export class RedisHealthMonitor extends EventEmitter<{ change: [RedisHealthChang
   }
 
   async start(): Promise<void> {
-    await this.probe();
-    this.timer = setInterval(() => void this.probe(), this.intervalMs);
+    await this.check();
+    this.timer = setInterval(() => void this.check(), this.intervalMs);
     this.timer.unref();
   }
 
@@ -45,7 +46,14 @@ export class RedisHealthMonitor extends EventEmitter<{ change: [RedisHealthChang
     this.timer = null;
   }
 
-  private async probe(): Promise<void> {
+  check(): Promise<boolean> {
+    this.probing ??= this.probe().finally(() => {
+      this.probing = undefined;
+    });
+    return this.probing;
+  }
+
+  private async probe(): Promise<boolean> {
     let ok = false;
     try {
       await withTimeout(this.client.ping(), this.timeoutMs);
@@ -58,6 +66,7 @@ export class RedisHealthMonitor extends EventEmitter<{ change: [RedisHealthChang
       this.sinceMs = Date.now();
       this.emit('change', { healthy: ok, sinceMs: this.sinceMs });
     }
+    return ok;
   }
 }
 

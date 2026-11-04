@@ -6,3 +6,6 @@ web-dist
 tmp
 docs/evidence
 carga/results
+
+**/node_modules
+**/dist
