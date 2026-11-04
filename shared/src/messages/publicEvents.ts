@@ -15,6 +15,7 @@ export const PublicEventType = {
 export type PublicEventType = (typeof PublicEventType)[keyof typeof PublicEventType];
 
 export interface CorrectionNotice {
+  reason: 'correccion' | 'retiro_dudosa' | 'verificacion';
   acta: string;
   fromVersion: number;
   toVersion: number;

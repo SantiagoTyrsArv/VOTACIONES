@@ -25,8 +25,8 @@ export class DeltaCondenser {
 
     for (const { id, entry } of records) {
       for (const field of Object.keys(entry.delta)) touched.add(field);
-      if (entry.reason === 'correccion') {
-        corrections.push({ acta: entry.acta, fromVersion: entry.previousVersion, toVersion: entry.version });
+      if (entry.reason !== 'nueva') {
+        corrections.push({ acta: entry.acta, fromVersion: entry.previousVersion, toVersion: entry.version, reason: entry.reason });
       }
       const receivedAt = entry.receivedAtMs > 0 ? entry.receivedAtMs : id.timestampMs;
       oldestReceivedAtMs = Math.min(oldestReceivedAtMs, receivedAt);

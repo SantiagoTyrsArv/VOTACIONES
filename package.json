@@ -2,7 +2,7 @@
   "name": "votaciones",
   "version": "0.1.0",
   "private": true,
-  "description": "Preconteo electoral en tiempo real: WebSocket + SSE + Redis sobre 8 instancias sin sesiones pegajosas",
+  "description": "Preconteo electoral en tiempo real: ingesta, difusión pública y verificación sobre 8 instancias coordinadas por Redis.",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -10,14 +10,24 @@
   "workspaces": [
     "shared",
     "server",
+    "jurado",
+    "herramientas",
     "publico",
     "carga"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "start": "npm run start -w server",
-    "dev": "npm run dev -w server",
+    "start": "npm run start --workspace @votaciones/server",
+    "dev": "npm run dev --workspace @votaciones/server",
+    "dev:jurado": "npm run dev --workspace @preconteo/jurado --",
+    "dev:publico": "npm run dev --workspace @votaciones/publico --",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "test:e2e": "playwright test",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "redis:up": "docker compose up -d redis",
+    "redis:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
   }
 }

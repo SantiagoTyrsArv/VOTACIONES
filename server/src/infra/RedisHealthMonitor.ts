@@ -34,8 +34,8 @@ export class RedisHealthMonitor extends EventEmitter<{ change: [RedisHealthChang
     return this.sinceMs;
   }
 
-  start(): void {
-    void this.probe();
+  async start(): Promise<void> {
+    await this.probe();
     this.timer = setInterval(() => void this.probe(), this.intervalMs);
     this.timer.unref();
   }

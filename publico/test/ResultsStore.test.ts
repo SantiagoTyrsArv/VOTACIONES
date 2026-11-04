@@ -8,7 +8,7 @@ const snapshot = (to: string, totals: Record<string, number>): PublicSnapshot =>
 
 const delta = (from: string | null, to: string, changes: Record<string, number>, corrected = false): PublicDelta => ({
   type: 'delta', topic: 'dep', from, to, changes, actas: 1,
-  corrections: corrected ? [{ acta: 'E14-1', fromVersion: 1, toVersion: 2 }] : [],
+  corrections: corrected ? [{ acta: 'E14-1', fromVersion: 1, toVersion: 2, reason: 'correccion' }] : [],
   oldestReceivedAtMs: 0, instance: 'i1',
 });
 

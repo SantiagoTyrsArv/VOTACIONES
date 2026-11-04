@@ -1,3 +1,7 @@
+export * from './acta.js';
+export * from './recibo.js';
+export * from './claves.js';
+export * from './mensajes.js';
 export * from './topic.js';
 export * from './streamId.js';
 export * from './redisKeys.js';

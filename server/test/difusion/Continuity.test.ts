@@ -34,7 +34,18 @@ describe('DeltaCondenser (RF-4)', () => {
 
     // C2: 4 (antes del cursor) − 4 (corrección) + 4 (A3) = 4 → aparece aunque su cambio neto sea 0
     expect(delta.changes).toEqual({ C2: 4, C3: 4 });
-    expect(delta.corrections).toEqual([{ acta: 'A2', fromVersion: 1, toVersion: 2 }]);
+    expect(delta.corrections).toEqual([{ acta: 'A2', fromVersion: 1, toVersion: 2, reason: 'correccion' }]);
+  });
+
+  it('explica los retiros dudosos y las verificaciones', async () => {
+    const results = new InMemoryResults();
+    results.apply('dep', 'A1', { C1: 10 });
+    results.apply('dep', 'A1', { C1: -10 }, { reason: 'retiro_dudosa', version: 2, previousVersion: 1 });
+    results.apply('dep', 'A1', { C1: 10 }, { reason: 'verificacion', version: 3, previousVersion: 2 });
+
+    const delta = condenser.condense('dep', null, await results.readAfter('dep', null, 100))!;
+
+    expect(delta.corrections.map((item) => item.reason)).toEqual(['retiro_dudosa', 'verificacion']);
   });
 });
 

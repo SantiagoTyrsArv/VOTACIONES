@@ -8,7 +8,7 @@ import { Topic } from './topic.js';
  *  - C (verificación): cola, bloqueos, cercado, presencia, stream de verificación.
  */
 export const RedisKeys = {
-  // --- Acumulados (Hash): un campo por candidato + sufragantes + mesas_inf + mesas_total
+  // --- Acumulados (Hash): un campo por candidato + sufragantes + mesas_inf + mesas_tot
   totals(topic: Topic): string {
     return `tot:${topic.toString()}`;
   },

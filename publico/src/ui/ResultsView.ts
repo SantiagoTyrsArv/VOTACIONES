@@ -128,9 +128,10 @@ export class ResultsView {
     const reconcile = this.store.lastReconcile;
     const container = this.element('[data-correcciones]');
     container.hidden = corrections.length === 0 && reconcile === null;
+    const labels = { correccion: 'Corrección', retiro_dudosa: 'Retiro por acta dudosa', verificacion: 'Verificación' };
     const items = corrections.map(
       (c) =>
-        `<li>${timeFormat.format(c.atMs)} · Corrección del acta <strong>${escapeHtml(c.acta)}</strong> (v${c.fromVersion} → v${c.toVersion})</li>`,
+        `<li>${timeFormat.format(c.atMs)} · ${labels[c.reason]} del acta <strong>${escapeHtml(c.acta)}</strong> (v${c.fromVersion} → v${c.toVersion})</li>`,
     );
     if (reconcile) {
       items.unshift(

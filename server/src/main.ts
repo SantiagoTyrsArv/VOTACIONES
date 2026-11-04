@@ -1,6 +1,7 @@
 import { AppConfig } from './config/AppConfig.js';
 import type { AppModule } from './infra/AppModule.js';
 import { DifusionModule } from './difusion/DifusionModule.js';
+import { IngestaModule } from './ingesta/IngestaModule.js';
 import { Application } from './infra/Application.js';
 
 /**
@@ -10,6 +11,7 @@ import { Application } from './infra/Application.js';
  *   C → new VerificacionModule()
  */
 const modules: AppModule[] = [
+  new IngestaModule(), // Persona A
   new DifusionModule(), // Persona B
 ];
 

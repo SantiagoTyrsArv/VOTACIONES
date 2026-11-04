@@ -6,12 +6,12 @@
 export const TotalsField = {
   voters: 'sufragantes',
   reportedTables: 'mesas_inf',
-  totalTables: 'mesas_total',
+  totalTables: 'mesas_tot',
 } as const;
 
 export type Totals = Record<string, number>;
 
-export type ChangeReason = 'nueva' | 'correccion';
+export type ChangeReason = 'nueva' | 'correccion' | 'retiro_dudosa' | 'verificacion';
 
 /**
  * Campos de cada entrada XADD en st:{tópico}. Redis guarda strings planos,
@@ -56,11 +56,16 @@ export function parseStreamEntry(fields: Record<string, string>): ResultsStreamE
     acta: fields[StreamEntryField.acta] ?? '',
     version: Number(fields[StreamEntryField.version] ?? 0),
     previousVersion: Number(fields[StreamEntryField.previousVersion] ?? 0),
-    reason: fields[StreamEntryField.reason] === 'correccion' ? 'correccion' : 'nueva',
+    reason: parseReason(fields[StreamEntryField.reason]),
     delta: safeJson(fields[StreamEntryField.delta]),
     totals: safeJson(fields[StreamEntryField.totals]),
     receivedAtMs: Number(fields[StreamEntryField.receivedAtMs] ?? 0),
   };
+}
+
+function parseReason(raw: string | undefined): ChangeReason {
+  if (raw === 'correccion' || raw === 'retiro_dudosa' || raw === 'verificacion') return raw;
+  return 'nueva';
 }
 
 /** Inverso de parseStreamEntry; lo usan el script de A (vía la app) y los generadores de prueba. */

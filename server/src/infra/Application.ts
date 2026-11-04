@@ -45,11 +45,15 @@ export class Application {
 
     this.upgrades.attach(this.http.server);
     await this.connectRedisWithoutBlocking();
-    this.health.start();
     for (const module of this.modules) await module.start?.();
+    await this.health.start();
 
     await this.http.listen({ port: this.config.port, host: '::' });
     this.http.log.info(`Instancia ${this.config.instanceId} escuchando en el puerto ${this.config.port}`);
+  }
+
+  get address() {
+    return this.http.server.address();
   }
 
   async stop(): Promise<void> {

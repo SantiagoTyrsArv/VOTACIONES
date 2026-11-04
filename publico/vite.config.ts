@@ -13,6 +13,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: '0.0.0.0',
     // En desarrollo, las rutas del servidor van a la instancia local
     proxy: {
       '/publico/sse': 'http://localhost:3000',
