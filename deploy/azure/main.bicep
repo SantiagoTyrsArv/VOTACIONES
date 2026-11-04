@@ -76,9 +76,20 @@ resource almacen 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   location: location
   sku: { name: 'Standard_LRS' }
   kind: 'StorageV2'
+  identity: { type: 'SystemAssigned' }
   properties: {
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
+    supportsHttpsTrafficOnly: true
+    // Cifrado en reposo con claves de Microsoft (explícito).
+    encryption: {
+      keySource: 'Microsoft.Storage'
+      requireInfrastructureEncryption: true
+      services: {
+        file: { enabled: true, keyType: 'Account' }
+        blob: { enabled: true, keyType: 'Account' }
+      }
+    }
   }
 }
 
@@ -96,6 +107,7 @@ resource recursoRedis 'Microsoft.Storage/storageAccounts/fileServices/shares@202
 resource entorno 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: '${nombre}-entorno'
   location: location
+  identity: { type: 'SystemAssigned' }
   properties: {
     appLogsConfiguration: {
       destination: 'log-analytics'
@@ -123,6 +135,7 @@ resource volumenRedis 'Microsoft.App/managedEnvironments/storages@2024-03-01' = 
 resource redis 'Microsoft.App/containerApps@2024-03-01' = {
   name: redisApp
   location: location
+  identity: { type: 'SystemAssigned' }
   properties: {
     managedEnvironmentId: entorno.id
     configuration: {
@@ -131,6 +144,8 @@ resource redis 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'tcp'
         targetPort: 6379
         exposedPort: 6379
+        // TCP interno: la autenticación es la contraseña de Redis; se aceptan certificados de cliente.
+        clientCertificateMode: 'accept'
       }
       secrets: [{ name: 'redis-password', value: redisPassword }]
     }
@@ -184,6 +199,7 @@ var entornoApp = [
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
   name: nombre
   location: location
+  identity: { type: 'SystemAssigned' }
   dependsOn: [redis]
   properties: {
     managedEnvironmentId: entorno.id
@@ -228,6 +244,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
 resource catalogo 'Microsoft.App/jobs@2024-03-01' = {
   name: '${nombre}-catalogo'
   location: location
+  identity: { type: 'SystemAssigned' }
   dependsOn: [redis]
   properties: {
     environmentId: entorno.id
