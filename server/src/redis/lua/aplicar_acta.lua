@@ -28,7 +28,7 @@ ARGV:
   3  candidatos (entran al ranking)                 9  canal ch:verif
   4  firma del contenido                            10 modo: jurado | verificacion | resolucion
   5  instancia que ingiere                          11 contexto de resolución (JSON) o ''
-  6  TTL de idem en segundos
+  6  TTL de idem en segundos                       12 '1' = exigir que la mesa esté asignada al jurado
 
 Las actas dudosas y los conflictos se escriben como casos de C en
 verif:casos (mismo formato que CaseRecord) y entran a verif:cola con la
@@ -146,6 +146,11 @@ if previo then
     return { 'RECHAZADA', '', 'IDEM_REUTILIZADO' }
   end
   return { 'YA_REGISTRADA', previo, '' }
+end
+
+-- El jurado (ya autenticado por su credencial) solo transmite sus mesas.
+if ARGV[12] == '1' and redis.call('SISMEMBER', KEYS[23], tostring(acta.mesa)) == 0 then
+  return { 'RECHAZADA', '', 'MESA_NO_ASIGNADA' }
 end
 
 local cat = redis.call('HMGET', KEYS[3], 'puesto', 'municipio')

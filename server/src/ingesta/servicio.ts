@@ -26,6 +26,13 @@ export interface OpcionesIngesta {
   limiteActasPorMinuto: number;
 }
 
+/**
+ * Quién envía. `null` = credenciales desactivadas (desarrollo y pruebas):
+ * se confía en `acta.jurado`. Con credenciales, el transporte ya verificó la
+ * firma y entrega aquí el jurado que dice la credencial.
+ */
+export type JuradoAutenticado = string | null;
+
 /** Contadores locales de la instancia; C los expone en el tablero (RT-7). */
 export interface MetricasIngesta {
   porEstado: Record<string, number>;
@@ -38,13 +45,13 @@ export class ServicioIngesta {
 
   constructor(private readonly op: OpcionesIngesta) {}
 
-  async recibir(entrada: unknown): Promise<RespuestaIngesta> {
-    const r = await this.procesar(entrada);
+  async recibir(entrada: unknown, jurado: JuradoAutenticado = null): Promise<RespuestaIngesta> {
+    const r = await this.procesar(entrada, jurado);
     this.metricas.porEstado[r.estado] = (this.metricas.porEstado[r.estado] ?? 0) + 1;
     return r;
   }
 
-  private async procesar(entrada: unknown): Promise<RespuestaIngesta> {
+  private async procesar(entrada: unknown, jurado: JuradoAutenticado): Promise<RespuestaIngesta> {
     const { instancia, redis } = this.op;
 
     const v = validarActa(entrada);
@@ -57,13 +64,24 @@ export class ServicioIngesta {
       };
     }
     const acta = v.acta;
+    if (jurado !== null && acta.jurado !== jurado) {
+      return {
+        estado: ESTADOS.RECHAZADA,
+        motivo: MOTIVOS_RECHAZO.NO_AUTORIZADO,
+        detalle: 'La credencial no corresponde al jurado del acta.',
+        instancia,
+      };
+    }
 
     try {
-      const limite = await this.revisarLimite(acta.jurado);
+      // El límite cuenta por credencial verificada, no por el campo del cuerpo.
+      const limite = await this.revisarLimite(jurado ?? acta.jurado);
       if (limite) return limite;
 
       const t0 = performance.now();
-      const r = await aplicarActa(redis, acta, instancia);
+      const r = await aplicarActa(redis, acta, instancia, 'jurado', undefined, {
+        exigirAsignacion: jurado !== null,
+      });
       this.registrarLatencia(performance.now() - t0);
       return r;
     } catch (e) {

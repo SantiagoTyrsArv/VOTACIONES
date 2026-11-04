@@ -57,6 +57,7 @@ export function clavesDeActa(a: Acta, resolucion?: ResolucionContexto): string[]
     claves.fenceCaso(a.acta),
     claves.presAud(),
     claves.presInfo(),
+    claves.mesasJurado(a.jurado),
   ];
 }
 
@@ -65,6 +66,7 @@ export function argumentosDeActa(
   instancia: string,
   modo: ModoAplicacion,
   resolucion?: ResolucionContexto,
+  exigirAsignacion = false,
 ): string[] {
   return [
     JSON.stringify(a),
@@ -78,6 +80,7 @@ export function argumentosDeActa(
     canales.verif,
     modo,
     resolucion ? JSON.stringify(resolucion) : '',
+    exigirAsignacion ? '1' : '0',
   ];
 }
 
@@ -91,10 +94,17 @@ const DETALLES: Record<string, string> = {
   CONFLICTO_VERSION:
     'Ya existe esta misma versión con otros valores. Si es una corrección, envíela como una versión nueva.',
   IDEM_REUTILIZADO: 'La clave de envío ya se usó para otra acta o versión.',
+  NO_AUTORIZADO: 'La credencial falta, venció o no corresponde al jurado del acta.',
+  MESA_NO_ASIGNADA: 'La mesa no está asignada a este jurado.',
   STALE_TOKEN: 'El bloqueo, la sesión o la versión del caso ya no son vigentes.',
   INVALID_CASE: 'El caso de verificación no coincide con el acta registrada.',
   RESOLUCION_CONFLICTO: 'Esta toma del caso ya se resolvió con otra decisión.',
 };
+
+export interface OpcionesAplicacion {
+  /** Con credenciales activas, la mesa debe estar en jur:{jurado}:mesas. */
+  exigirAsignacion?: boolean;
+}
 
 /** Ejecuta el script y traduce su respuesta. Propaga errores de Redis. */
 export async function aplicarActa(
@@ -103,6 +113,7 @@ export async function aplicarActa(
   instancia: string,
   modo: ModoAplicacion = 'jurado',
   resolucion?: ResolucionContexto,
+  opciones: OpcionesAplicacion = {},
 ): Promise<RespuestaIngesta> {
   if ((modo === 'resolucion') !== (resolucion !== undefined)) {
     throw new Error('El modo resolucion exige (solo él) un contexto de resolución');
@@ -110,7 +121,7 @@ export async function aplicarActa(
   const [estado, reciboJson, motivo] = await redis.script<[string, string, string]>(
     'aplicar_acta',
     clavesDeActa(acta, resolucion),
-    argumentosDeActa(acta, instancia, modo, resolucion),
+    argumentosDeActa(acta, instancia, modo, resolucion, opciones.exigirAsignacion),
   );
   const r: RespuestaIngesta = { estado: estado as Estado, instancia };
   if (reciboJson) r.recibo = JSON.parse(reciboJson) as Recibo;

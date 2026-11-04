@@ -25,6 +25,19 @@ Definida en [`shared/src/acta.ts`](../shared/src/acta.ts), igual al enunciado (�
 | Formato (tipos, rangos, casillas exactas, puesto del id = `puesto`) | `validarActa()` en PWA y servidor | `RECHAZADA` / `FORMATO` |
 | La mesa existe en el catálogo y su puesto y municipio coinciden | `aplicar_acta.lua` | `RECHAZADA` / `MESA_DESCONOCIDA` o `UBICACION_INCONSISTENTE` |
 | Regla contable: Σ casillas = `sufragantes` | `aplicar_acta.lua` | `DUDOSA_EN_VERIFICACION` (se registra, no suma) |
+| Credencial válida y del mismo jurado que `acta.jurado` (si `JURADO_SECRETO` está definido) | transporte + `ServicioIngesta` | HTTP 401 / `RECHAZADA` · `NO_AUTORIZADO` |
+| La mesa está asignada al jurado (`jur:{jurado}:mesas`) | `aplicar_acta.lua` | `RECHAZADA` / `MESA_NO_ASIGNADA` |
+
+### Credencial del jurado
+
+Definida en [`shared/src/credencial.ts`](../shared/src/credencial.ts) (solo Node). Formato `v1.{jurado}.{vence}.{firma}`, con `firma = base64url(HMAC-SHA256(JURADO_SECRETO, "v1.{jurado}.{vence}"))`. El servidor no confía en `acta.jurado`: toma el jurado de la credencial verificada, exige que coincida y usa ese valor para el límite de tasa. Las 8 réplicas comparten el secreto por variable de entorno, sin estado de sesión.
+
+- `POST /actas`: cabecera `Authorization: Bearer {credencial}`.
+- `WS /ws/jurados?credencial={credencial}`: el navegador no permite cabeceras en el WebSocket. Sin una credencial válida, el upgrade se rechaza con 401 antes de abrir el socket.
+- Emisión: `JURADO_SECRETO=… npm run credenciales -w @preconteo/herramientas -- --desde 1 --hasta 50` imprime un CSV con un enlace `/jurado/?credencial=…` por jurado.
+- La PWA guarda la credencial junto con cada acta en la cola offline. Si recibe `NO_AUTORIZADO`, conserva el acta hasta que se cargue una credencial válida.
+
+Sin `JURADO_SECRETO` la verificación queda desactivada (desarrollo y pruebas) y el servidor lo avisa en el log al arrancar.
 
 Candidatos: `C1`, `C2`, `C3`. Casillas especiales: `BLANCO`, `NULO`, `NO_MARCADO`.
 
@@ -67,7 +80,8 @@ Definidas en [`shared/src/claves.ts`](../shared/src/claves.ts). Tópicos: `dep`,
 | `idem:{idem}` | String | A | A | recibo JSON, `EX 86400` |
 | `cat:mesa:{n}` | Hash | A (generador) | A | `puesto`, `municipio` |
 | `seq:recibo` | String | A | — | consecutivo de recibos |
-| `rl:{credencial}:{ventana}` | String | A | — | contador, `EX 60` |
+| `rl:{credencial}:{ventana}` | String | A | — | contador, `EX 60` (jurado de la credencial verificada) |
+| `jur:{jurado}:mesas` | Set | generador de catálogo | A | mesas asignadas al jurado |
 | `verif:casos` | Hash | A crea y cierra, C asigna | C | campo = id del acta, valor = `CaseRecord` JSON (ver §8) |
 | `verif:cola` | ZSET | A encola, C toma | C | miembro = id del acta, score = `receivedAt − priority·10¹⁰` (menor = más urgente) |
 | `verif:asignados` | ZSET | C (A retira al cerrar) | C | miembro = id, score = vencimiento de la concesión |

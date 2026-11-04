@@ -28,6 +28,7 @@ jobs:
       # Pruebas de ingesta (A): bases 15 y 14; pruebas de C: base 0 del mismo Redis.
       REDIS_URL_PRUEBAS: redis://localhost:6380/15
       REDIS_URL_PRUEBAS_HTTP: redis://localhost:6380/14
+      REDIS_URL_E2E: redis://localhost:6380/13
     services:
       redis:
         image: redis:7.4-alpine
@@ -43,6 +44,8 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run check
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - run: npm audit --omit=dev
       - run: npm run carga:plan
       - run: npm run validate:deploy

@@ -1,5 +1,6 @@
 import { createClient } from 'redis';
 import { claves, topico } from '@votaciones/shared';
+import { juradoDeMesa } from './jurados.js';
 
 const total = Number(process.env.MESAS ?? 6400);
 const puestos = Number(process.env.PUESTOS ?? 1842);
@@ -14,6 +15,8 @@ for (let i = 0; i < total; i++) {
   const puesto = (i % puestos) + 1;
   const municipio = (puesto % municipios) + 1;
   pipeline.hSet(claves.catMesa(mesa), { puesto, municipio });
+  // Asignación jurado → mesa (un jurado por mesa en la simulación: JUR-{mesa}).
+  pipeline.sAdd(claves.mesasJurado(juradoDeMesa(mesa)), String(mesa));
   for (const t of [topico.pue(puesto), topico.mun(municipio), topico.dep()]) porTopico.set(t, (porTopico.get(t) ?? 0) + 1);
 }
 for (const [t, n] of porTopico) pipeline.hSet(claves.tot(t as Parameters<typeof claves.tot>[0]), 'mesas_tot', n);

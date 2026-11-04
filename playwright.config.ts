@@ -13,8 +13,9 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 30_000,
       env: {
-        REDIS_URL: 'redis://localhost:6379/13',
+        REDIS_URL: process.env.REDIS_URL_E2E ?? 'redis://localhost:6379/13',
         INSTANCE_ID: 'e2e-integrada',
+        DEMO_MODE: 'true',
         LOG_LEVEL: 'silent',
         PUBLIC_WINDOW_MS: '100',
         PUBLIC_DEP_WINDOW_MS: '100',

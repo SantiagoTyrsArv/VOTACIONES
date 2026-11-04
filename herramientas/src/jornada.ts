@@ -1,4 +1,5 @@
 import type { Acta, Votos } from '@votaciones/shared';
+import { cabecerasJurado, juradoDeMesa } from './jurados.js';
 
 const arg = (nombre: string, defecto: number) => {
   const i = process.argv.indexOf(`--${nombre}`);
@@ -22,11 +23,11 @@ function actaDe(i: number): Acta {
   const municipio = (puesto % municipios) + 1;
   const votos: Votos = { C1: 80 + (i % 90), C2: 60 + (i % 50), C3: 100 + (i % 70), BLANCO: 5 + (i % 8), NULO: 2 + (i % 5), NO_MARCADO: 3 + (i % 4) };
   const sufragantes = Object.values(votos).reduce((s, n) => s + n, 0) + (Math.random() < dudosas ? 1 : 0);
-  return { acta:`E14-${puesto}-${String(mesa).padStart(4,'0')}-03`, mesa, puesto, municipio, version:1, jurado:`JUR-${mesa}`, ts_cierre:Math.floor(Date.now()/1000), votos, sufragantes, hash_foto:`demo-${mesa}`, idem:`demo-${mesa}-${Date.now().toString(36)}` };
+  return { acta:`E14-${puesto}-${String(mesa).padStart(4,'0')}-03`, mesa, puesto, municipio, version:1, jurado:juradoDeMesa(mesa), ts_cierre:Math.floor(Date.now()/1000), votos, sufragantes, hash_foto:`demo-${mesa}`, idem:`demo-${mesa}-${Date.now().toString(36)}` };
 }
 async function transmitir(a: Acta): Promise<void> {
   try {
-    const r = await fetch(`${base}/actas`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(a) });
+    const r = await fetch(`${base}/actas`, { method:'POST', headers:{'content-type':'application/json', ...cabecerasJurado(a.jurado)}, body:JSON.stringify(a) });
     if (r.ok) confirmadas++; else fallidas++;
   } catch { fallidas++; }
   finally { enviadas++; }
