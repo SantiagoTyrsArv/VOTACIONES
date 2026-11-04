@@ -147,9 +147,8 @@ resource redis 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'tcp'
         targetPort: 6379
         exposedPort: 6379
-        // Excepción a S6382: ingress TCP interno (no expuesto a Internet). Redis habla TCP plano
-        // y autentica con requirepass; exigir certificados de cliente cortaría a las réplicas.
-        clientCertificateMode: 'accept' // NOSONAR
+        // Sin clientCertificateMode: Azure solo lo admite con transport http (en TCP falla la
+        // validación). Sonar S6382 se marca como seguro: ingress interno, autenticación por requirepass.
       }
       secrets: [{ name: 'redis-password', value: redisPassword }]
     }
