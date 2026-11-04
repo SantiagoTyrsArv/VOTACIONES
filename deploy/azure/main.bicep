@@ -110,8 +110,10 @@ resource recursoRedis 'Microsoft.Storage/storageAccounts/fileServices/shares@202
 resource entorno 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: '${nombre}-entorno'
   location: location
-  identity: { type: 'SystemAssigned' }
   properties: {
+    // Entorno de "workload profiles" con el perfil Consumption (pago por uso). Sin esto
+    // Azure crea un entorno Express, que no admite ingress TCP, Azure Files ni Jobs.
+    workloadProfiles: [{ name: 'Consumption', workloadProfileType: 'Consumption' }]
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
@@ -141,6 +143,7 @@ resource redis 'Microsoft.App/containerApps@2024-03-01' = {
   identity: { type: 'SystemAssigned' }
   properties: {
     managedEnvironmentId: entorno.id
+    workloadProfileName: 'Consumption'
     configuration: {
       ingress: {
         external: false
@@ -207,6 +210,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
   dependsOn: [redis]
   properties: {
     managedEnvironmentId: entorno.id
+    workloadProfileName: 'Consumption'
     configuration: {
       ingress: {
         external: true
@@ -252,6 +256,7 @@ resource catalogo 'Microsoft.App/jobs@2024-03-01' = {
   dependsOn: [redis]
   properties: {
     environmentId: entorno.id
+    workloadProfileName: 'Consumption'
     configuration: {
       triggerType: 'Manual'
       replicaTimeout: 600
