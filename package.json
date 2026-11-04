@@ -5,7 +5,8 @@
   "description": "Preconteo electoral en tiempo real: ingesta de actas, difusión pública y verificación sobre 8 instancias coordinadas por Redis.",
   "type": "module",
   "workspaces": [
-    "shared"
+    "shared",
+    "server"
   ],
   "engines": {
     "node": ">=22"

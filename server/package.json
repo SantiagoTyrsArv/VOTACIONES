@@ -1,0 +1,28 @@
+{
+  "name": "@preconteo/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Instancia del preconteo: Fastify + ws + SSE. Cada una de las 8 réplicas corre este mismo código.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch --conditions=source src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json && node scripts/copiar-lua.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@preconteo/shared": "0.1.0",
+    "fastify": "^5.12.8",
+    "redis": "^6.3.1",
+    "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  }
+}
