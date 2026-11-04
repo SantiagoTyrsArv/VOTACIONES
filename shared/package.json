@@ -1,0 +1,23 @@
+{
+  "name": "@preconteo/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Contrato compartido: tipos de mensajes, claves de Redis y validación del acta.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  }
+}
