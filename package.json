@@ -1,0 +1,20 @@
+{
+  "name": "preconteo-electoral",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Preconteo electoral en tiempo real: ingesta de actas, difusión pública y verificación sobre 8 instancias coordinadas por Redis.",
+  "type": "module",
+  "workspaces": [
+    "shared"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "redis:up": "docker compose up -d redis",
+    "redis:down": "docker compose down"
+  }
+}
