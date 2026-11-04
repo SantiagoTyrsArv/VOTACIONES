@@ -360,7 +360,7 @@ async function registerVerification(
     },
     async stop() {
       stopping = true;
-      timers.forEach(clearInterval);
+      for (const timer of timers) clearInterval(timer);
       for (const client of wsServer.clients) client.terminate();
       wsServer.close();
       metrics.close();

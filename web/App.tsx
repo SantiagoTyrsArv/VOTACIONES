@@ -31,10 +31,9 @@ const time = (n: number) =>
 const validCredential = (value: string | null): value is string =>
   value !== null && /^[A-Za-z0-9._~-]{4,256}$/.test(value);
 export function App() {
-  const [credential, setCredential] = useState(() => {
-    const stored = sessionStorage.getItem('c-credential');
-    return validCredential(stored) ? stored : '';
-  });
+  // La credencial vive solo en memoria: no queda en el almacenamiento del navegador
+  // (una recarga pide ingresarla otra vez; el caso propio se reanuda al reconectar).
+  const [credential, setCredential] = useState('');
   const [input, setInput] = useState(''),
     [demo, setDemo] = useState(false),
     [identity, setIdentity] = useState<Identity>();
@@ -114,7 +113,6 @@ export function App() {
         if (msg.code === 'UNAUTHORIZED' || msg.code === 'SESSION_REPLACED') {
           replaced.current = true;
           setStatus('Sesión cerrada');
-          sessionStorage.removeItem('c-credential');
         }
         if (msg.code && !['PRESENT', 'RENEWED', 'RESUMED'].includes(msg.code))
           setNotice({
@@ -192,12 +190,10 @@ export function App() {
       setNotice({ text: 'La credencial contiene caracteres no permitidos.', kind: 'error' });
       return;
     }
-    sessionStorage.setItem('c-credential', normalized);
     setNotice(undefined);
     setCredential(normalized);
   };
   const logout = () => {
-    sessionStorage.removeItem('c-credential');
     setCredential('');
     setIdentity(undefined);
     setSnapshot(undefined);
