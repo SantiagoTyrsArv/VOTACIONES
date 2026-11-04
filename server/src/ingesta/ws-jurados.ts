@@ -9,10 +9,12 @@ import {
   CIERRE_APAGADO,
   PROTOCOLO_JURADOS,
   RUTA_WS_JURADOS,
+  SUBPROTOCOLO_JURADOS,
   type MensajeServidorJurado,
 } from '@votaciones/shared';
+import type { IncomingMessage } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
-import type { ServicioIngesta } from './servicio.js';
+import type { JuradoAutenticado, ServicioIngesta } from './servicio.js';
 
 export interface OpcionesWsJurados {
   ingesta: ServicioIngesta;
@@ -20,15 +22,30 @@ export interface OpcionesWsJurados {
   latidoMs?: number;
 }
 
+/**
+ * Jurado que autenticó el upgrade (ver IngestaModule). La conexión solo
+ * existe si la credencial fue válida; null = credenciales desactivadas.
+ */
+const juradoDe = new WeakMap<IncomingMessage, JuradoAutenticado>();
+export const recordarJurado = (req: IncomingMessage, jurado: JuradoAutenticado): void => {
+  juradoDe.set(req, jurado);
+};
+
 export function crearWsJurados(op: OpcionesWsJurados) {
-  const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
+  const wss = new WebSocketServer({
+    noServer: true,
+    maxPayload: 16 * 1024,
+    // Se acepta el subprotocolo; la credencial (el otro valor ofrecido) no se devuelve.
+    handleProtocols: (ofrecidos) => (ofrecidos.has(SUBPROTOCOLO_JURADOS) ? SUBPROTOCOLO_JURADOS : false),
+  });
   const vivos = new WeakMap<WebSocket, boolean>();
 
   const enviar = (ws: WebSocket, m: MensajeServidorJurado) => {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(m));
   };
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws, req: IncomingMessage) => {
+    const jurado = juradoDe.get(req) ?? null;
     vivos.set(ws, true);
     ws.on('pong', () => vivos.set(ws, true));
     ws.on('error', () => ws.terminate());
@@ -46,7 +63,7 @@ export function crearWsJurados(op: OpcionesWsJurados) {
         enviar(ws, { tipo: 'error', codigo: 'MENSAJE_INVALIDO', detalle: 'Se esperaba {"tipo":"acta","acta":{…}}' });
         return;
       }
-      const respuesta = await op.ingesta.recibir(m.acta);
+      const respuesta = await op.ingesta.recibir(m.acta, jurado);
       const idem = typeof m.acta.idem === 'string' ? m.acta.idem : '';
       enviar(ws, { tipo: 'respuesta', idem, respuesta });
     });

@@ -5,6 +5,7 @@
 import { ESTADOS, PATRON_ACTA, claves, type Estado, type RespuestaIngesta } from '@votaciones/shared';
 import type { FastifyInstance } from 'fastify';
 import type { ConexionRedis } from '../redis/conexion.js';
+import { respuestaNoAutorizada, type AutenticadorJurados } from './autenticacion.js';
 import type { ServicioIngesta } from './servicio.js';
 
 export const CODIGO_HTTP: Record<Estado, number> = {
@@ -21,9 +22,18 @@ interface Dependencias {
   ingesta: ServicioIngesta;
   redis: ConexionRedis;
   instancia: string;
+  autenticador: AutenticadorJurados;
 }
 
-export function registrarHttpIngesta(http: FastifyInstance, dep: Dependencias): void {
+/**
+ * Las rutas van en un plugin propio: el manejador de errores del contrato de
+ * ingesta solo aplica a /actas y no cambia las respuestas de B ni de C.
+ */
+export async function registrarHttpIngesta(http: FastifyInstance, dep: Dependencias): Promise<void> {
+  await http.register(async (ambito) => rutasIngesta(ambito, dep));
+}
+
+function rutasIngesta(http: FastifyInstance, dep: Dependencias): void {
   // JSON mal formado también recibe una respuesta del contrato.
   http.setErrorHandler((error, _req, rep) => {
     const err = error as { statusCode?: number; message?: string };
@@ -42,7 +52,11 @@ export function registrarHttpIngesta(http: FastifyInstance, dep: Dependencias): 
   });
 
   http.post('/actas', async (req, rep) => {
-    const r = await dep.ingesta.recibir(req.body);
+    const auth = dep.autenticador.autenticarCabecera(req.headers.authorization);
+    if (!auth.ok) {
+      return rep.code(401).header('WWW-Authenticate', 'Bearer').send(respuestaNoAutorizada(auth.detalle, dep.instancia));
+    }
+    const r = await dep.ingesta.recibir(req.body, auth.jurado);
     if (r.reintentar_en_ms) rep.header('Retry-After', String(Math.ceil(r.reintentar_en_ms / 1000)));
     return rep.code(CODIGO_HTTP[r.estado]).send(r);
   });

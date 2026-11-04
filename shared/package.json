@@ -24,6 +24,12 @@
       "development": "./src/verificacion/proposals.ts",
       "types": "./dist/verificacion/proposals.d.ts",
       "default": "./dist/verificacion/proposals.js"
+    },
+    "./credencial": {
+      "source": "./src/credencial.ts",
+      "development": "./src/credencial.ts",
+      "types": "./dist/credencial.d.ts",
+      "default": "./dist/credencial.js"
     }
   },
   "scripts": {

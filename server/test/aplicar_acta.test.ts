@@ -206,6 +206,15 @@ describe('Catálogo', () => {
     const a = { ...acta(4201), municipio: 12 };
     expect(await aplicar(a)).toMatchObject({ estado: 'RECHAZADA', motivo: 'UBICACION_INCONSISTENTE' });
   });
+
+  it('una mesa admite un solo id de acta: otro id no la suma dos veces', async () => {
+    expect((await aplicar(acta(4201))).estado).toBe('REGISTRADA');
+    const otroId = { ...acta(4201), acta: 'E14-176-0099-03' };
+    expect(await aplicar(otroId)).toMatchObject({ estado: 'RECHAZADA', motivo: 'UBICACION_INCONSISTENTE' });
+    expect(await totales(r, 'tot:pue:176')).toMatchObject({ C1: 184, mesas_inf: 1 });
+    // El id original sigue aceptando correcciones.
+    expect((await aplicar(acta(4201, { version: 2, votos: { C1: 180 } }))).estado).toBe('REGISTRADA');
+  });
 });
 
 describe('RF-3 · atomicidad y aviso', () => {

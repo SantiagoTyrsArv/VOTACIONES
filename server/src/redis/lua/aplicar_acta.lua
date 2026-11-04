@@ -28,7 +28,7 @@ ARGV:
   3  candidatos (entran al ranking)                 9  canal ch:verif
   4  firma del contenido                            10 modo: jurado | verificacion | resolucion
   5  instancia que ingiere                          11 contexto de resolución (JSON) o ''
-  6  TTL de idem en segundos
+  6  TTL de idem en segundos                       12 '1' = exigir que la mesa esté asignada al jurado
 
 Las actas dudosas y los conflictos se escriben como casos de C en
 verif:casos (mismo formato que CaseRecord) y entran a verif:cola con la
@@ -148,9 +148,20 @@ if previo then
   return { 'YA_REGISTRADA', previo, '' }
 end
 
-local cat = redis.call('HMGET', KEYS[3], 'puesto', 'municipio')
+-- El jurado (ya autenticado por su credencial) solo transmite sus mesas.
+if ARGV[12] == '1' and redis.call('SISMEMBER', KEYS[23], tostring(acta.mesa)) == 0 then
+  return { 'RECHAZADA', '', 'MESA_NO_ASIGNADA' }
+end
+
+local cat = redis.call('HMGET', KEYS[3], 'puesto', 'municipio', 'acta')
 if not cat[1] then return { 'RECHAZADA', '', 'MESA_DESCONOCIDA' } end
 if tonumber(cat[1]) ~= acta.puesto or tonumber(cat[2]) ~= acta.municipio then
+  return { 'RECHAZADA', '', 'UBICACION_INCONSISTENTE' }
+end
+-- Una sola acta por mesa: el primer id registrado queda atado a la mesa. Sin
+-- esto, otro id para la misma mesa la sumaría dos veces (y la asignación
+-- jurado → mesa no protegería el id del acta).
+if cat[3] and cat[3] ~= acta.acta then
   return { 'RECHAZADA', '', 'UBICACION_INCONSISTENTE' }
 end
 
@@ -249,6 +260,7 @@ local recibo = cjson.encode({
   instancia = ARGV[5],
 })
 
+redis.call('HSETNX', KEYS[3], 'acta', acta.acta)
 redis.call('HSET', KEYS[2],
   'version', tostring(acta.version),
   'firma', ARGV[4],

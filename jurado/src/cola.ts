@@ -2,7 +2,8 @@ import type { Acta } from '@votaciones/shared';
 
 const DB = 'preconteo-jurado';
 const STORE = 'salida';
-export interface Pendiente { acta: Acta; intentos: number; proximo: number; ultimoError?: string }
+/** `credencial`: la firmada con la que se transmite (viaja con el acta en la cola). */
+export interface Pendiente { acta: Acta; intentos: number; proximo: number; ultimoError?: string; credencial?: string }
 
 function abrir(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

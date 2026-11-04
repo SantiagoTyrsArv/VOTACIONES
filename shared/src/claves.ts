@@ -41,6 +41,8 @@ export const claves = {
   seqRecibo: () => 'seq:recibo',
   // ── Límite de tasa: ventana fija de 60 s por credencial
   limite: (credencial: string, ventana: number) => `rl:${credencial}:${ventana}`,
+  // ── Asignación jurado → mesas (la carga el generador de catálogo)
+  mesasJurado: (jurado: string) => `jur:${jurado}:mesas`,
   // ── Verificación (dueño C; A encola dudosas y conflictos)
   verifCasos: () => 'verif:casos',
   verifCola: () => 'verif:cola',

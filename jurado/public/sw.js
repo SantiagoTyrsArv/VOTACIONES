@@ -1,5 +1,7 @@
-const CACHE = 'actas-v2';
-const BASE = ['/', '/manifest.webmanifest', '/icono.svg'];
+const CACHE = 'actas-v3';
+// Rutas relativas al Service Worker: funciona en / (desarrollo) y en /jurado/ (servida por la instancia).
+const RAIZ = new URL('./', self.location).href;
+const BASE = [RAIZ, new URL('manifest.webmanifest', RAIZ).href, new URL('icono.svg', RAIZ).href];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(BASE)).then(() => self.skipWaiting()));
 });
@@ -25,7 +27,7 @@ self.addEventListener('fetch', (event) => {
     } catch {
       const cached = await caches.match(event.request, { ignoreVary: true });
       if (cached) return cached;
-      if (event.request.mode === 'navigate') return (await caches.match('/')) || Response.error();
+      if (event.request.mode === 'navigate') return (await caches.match(RAIZ)) || Response.error();
       return Response.error();
     }
   })());

@@ -2,7 +2,7 @@
 
 ## Catálogo
 
-Carga en Redis las mesas, puestos y municipios, y el total de mesas por tópico. Por defecto genera 6.400 mesas y 1.842 puestos.
+Carga en Redis las mesas, puestos y municipios, el total de mesas por tópico y la asignación jurado → mesa (`jur:JUR-{mesa}:mesas`, un jurado por mesa). Por defecto genera 6.400 mesas y 1.842 puestos.
 
 ```bash
 npm run redis:up
@@ -28,3 +28,14 @@ npm run jornada --workspace @preconteo/herramientas -- --actas 100 --duracion 2 
 ```
 
 `BASE_URL` selecciona el servidor (por defecto `http://localhost:3000`). El catálogo debe cargarse antes con los mismos valores de `MESAS`, `PUESTOS` y `MUNICIPIOS`.
+
+Si las instancias tienen `JURADO_SECRETO`, defina la misma variable al correr la jornada: el simulador firma la credencial de cada jurado.
+
+## Credenciales de jurados
+
+```bash
+JURADO_SECRETO=… npm run credenciales --workspace @preconteo/herramientas -- --desde 1 --hasta 50 --horas 24
+```
+
+Imprime `jurado,mesa,credencial,enlace`. El enlace abre la PWA con la credencial ya cargada; la PWA la quita de la barra de direcciones y la guarda con cada acta de la cola. `BASE_URL` define el servidor del enlace.
+

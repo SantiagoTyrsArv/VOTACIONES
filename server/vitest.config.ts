@@ -10,6 +10,10 @@ export default defineConfig({
         replacement: fileURLToPath(new URL('../shared/src/verificacion/proposals.ts', import.meta.url)),
       },
       {
+        find: /^@votaciones\/shared\/credencial$/,
+        replacement: fileURLToPath(new URL('../shared/src/credencial.ts', import.meta.url)),
+      },
+      {
         find: /^@votaciones\/shared\/verificacion$/,
         replacement: fileURLToPath(new URL('../shared/src/verificacion/contracts.ts', import.meta.url)),
       },

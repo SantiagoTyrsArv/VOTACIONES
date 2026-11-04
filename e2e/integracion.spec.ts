@@ -4,7 +4,7 @@ import { createClient } from 'redis';
 let redis: ReturnType<typeof createClient>;
 
 test.beforeAll(async () => {
-  redis = createClient({ url: 'redis://localhost:6379/13' });
+  redis = createClient({ url: process.env.REDIS_URL_E2E ?? 'redis://localhost:6379/13' });
   await redis.connect();
 });
 
