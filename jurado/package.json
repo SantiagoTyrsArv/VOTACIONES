@@ -1,0 +1,15 @@
+{
+  "name": "@preconteo/jurado",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "dependencies": { "@preconteo/shared": "0.1.0" },
+  "devDependencies": { "fake-indexeddb": "^6.2.4", "typescript": "^5.9.3", "vite": "^7.1.7", "vitest": "^5.1.0" }
+}
