@@ -3,7 +3,7 @@ import { borrar, guardar, todos, type Pendiente } from './cola';
 import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-app.innerHTML = `<main class="shell"><header><div class="marca"><img src="/icono.svg" alt=""/><div><h1>Transmisión de actas</h1><p>Preconteo electoral · aplicación del jurado</p></div></div><span class="estado" id="red">Comprobando…</span></header><div class="layout"><section class="panel"><h2>Nueva transmisión</h2><p class="ayuda">El acta se conserva en este dispositivo hasta recibir una respuesta definitiva. Puedes cerrar o perder la red sin perder el envío.</p><form id="form"><div class="grid">
+app.innerHTML = `<main class="shell"><header><div class="marca"><img src="icono.svg" alt=""/><div><h1>Transmisión de actas</h1><p>Preconteo electoral · aplicación del jurado</p></div></div><span class="estado" id="red">Comprobando…</span></header><div class="layout"><section class="panel"><h2>Nueva transmisión</h2><p class="ayuda">El acta se conserva en este dispositivo hasta recibir una respuesta definitiva. Puedes cerrar o perder la red sin perder el envío.</p><form id="form"><div class="grid">
 ${[['acta','Identificador','E14-176-4201-03'],['mesa','Mesa','4201'],['puesto','Puesto','176'],['municipio','Municipio','11'],['version','Versión','1'],['jurado','Credencial','JUR-88134']].map(([n,l,v])=>`<div class="campo"><label for="${n}">${l}</label><input id="${n}" name="${n}" required value="${v}" ${n==='acta'||n==='jurado'?'':'type="number" min="1"'} /></div>`).join('')}
 <div class="campo full"><label for="credencial">Credencial firmada</label><input id="credencial" name="credencial" autocomplete="off" spellcheck="false" placeholder="v1.JUR-…" /></div>
 <div class="votos">${CASILLAS.map((c)=>`<div class="campo"><label for="v-${c}">${c.replaceAll('_',' ')}</label><input id="v-${c}" data-voto="${c}" required type="number" min="0" value="0" /></div>`).join('')}</div></div><div class="acciones"><button type="submit">Guardar y transmitir</button><span class="total" id="total">Total: 0</span></div><div id="aviso" role="status" aria-live="polite"></div></form></section><aside class="panel"><h2>Bandeja de salida</h2><p class="ayuda" id="resumen">Sin envíos pendientes.</p><button class="secundario" id="reintentar">Reintentar ahora</button><div class="lista" id="lista"></div><p class="pie">Una clave única acompaña cada envío y sus reintentos. Así, aunque cambies de red o de instancia, el acta cuenta una sola vez.</p></aside></div></main>`;
@@ -160,7 +160,7 @@ $('reintentar').addEventListener('click',()=>{conectar();void procesar();});
 window.addEventListener('online',()=>{conectar();actualizarRed();void procesar();});
 window.addEventListener('offline',actualizarRed);
 if ('serviceWorker' in navigator) {
-  void navigator.serviceWorker.register('/sw.js').then(async (registro) => {
+  void navigator.serviceWorker.register('sw.js').then(async (registro) => {
     const activo = (await navigator.serviceWorker.ready).active ?? registro.active;
     const urls = performance.getEntriesByType('resource')
       .map((recurso) => recurso.name)

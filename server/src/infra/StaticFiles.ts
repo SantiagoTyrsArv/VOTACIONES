@@ -10,6 +10,7 @@ const types: Record<string, string> = {
   '.png': 'image/png',
   '.webp': 'image/webp',
   '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
 };
 export function registerStaticFiles(http: FastifyInstance, root: string, prefix = '/publico/'): void {
   const files = new Map<string, string>();
@@ -27,6 +28,13 @@ export function registerStaticFiles(http: FastifyInstance, root: string, prefix 
     reply.type(types[extname(name)] ?? 'application/octet-stream').send(readFileSync(path));
     return true;
   };
+  // Sin barra final las rutas relativas de la página se resolverían mal.
+  if (prefix.endsWith('/') && prefix.length > 1) {
+    http.get(prefix.slice(0, -1), (request, reply) => {
+      const consulta = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
+      return reply.redirect(prefix + consulta, 301);
+    });
+  }
   http.get(prefix, (_request, reply) => send('index.html', reply));
   http.get(`${prefix}*`, (request, reply) => {
     const name = (request.params as Record<string, string>)['*'] ?? '';

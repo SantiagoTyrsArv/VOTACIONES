@@ -1,4 +1,7 @@
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { AppModule, ModuleContext } from '../infra/AppModule.js';
+import { registerStaticFiles } from '../infra/StaticFiles.js';
 import { ConexionRedis } from '../redis/conexion.js';
 import { AutenticadorJurados } from './autenticacion.js';
 import { registrarHttpIngesta } from './http.js';
@@ -47,8 +50,22 @@ export class IngestaModule implements AppModule {
       recordarJurado(request, auth.jurado);
       jurados.wss.handleUpgrade(request, socket, head, (ws) => jurados.wss.emit('connection', ws, request));
     });
+    this.servirPwa(context);
     this.redis = redis;
     this.jurados = jurados;
+  }
+
+  /** La PWA compilada (npm run build -w @preconteo/jurado) se sirve en /jurado/. */
+  private servirPwa(context: ModuleContext): void {
+    const raiz = context.config.string(
+      'JURADO_DIR',
+      fileURLToPath(new URL('../../../jurado/dist', import.meta.url)),
+    );
+    if (!existsSync(raiz)) {
+      context.http.log.warn(`No se encontró la PWA del jurado en ${raiz}; ejecute "npm run build -w @preconteo/jurado"`);
+      return;
+    }
+    registerStaticFiles(context.http, raiz, '/jurado/');
   }
 
   async start(): Promise<void> {
