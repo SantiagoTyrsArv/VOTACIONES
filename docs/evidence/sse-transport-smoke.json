@@ -1,0 +1,88 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "evento SSE con datos": {
+                    "name": "evento SSE con datos",
+                    "path": "::evento SSE con datos",
+                    "id": "aaa0b33887470bcac6e9e02198965a4e",
+                    "passes": 12,
+                    "fails": 0
+                },
+                "SSE HTTP 200": {
+                    "name": "SSE HTTP 200",
+                    "path": "::SSE HTTP 200",
+                    "id": "b95e39c7d6ea4df53dde74fa4b078fe0",
+                    "passes": 4,
+                    "fails": 0
+                }
+            }
+    },
+    "metrics": {
+        "sse_event": {
+            "count": 12,
+            "rate": 4.755456909590319
+        },
+        "data_sent": {
+            "count": 568,
+            "rate": 225.09162705394178
+        },
+        "data_received": {
+            "count": 1360,
+            "rate": 538.9517830869029
+        },
+        "iterations": {
+            "count": 4,
+            "rate": 1.5851523031967731
+        },
+        "vus_max": {
+            "value": 1,
+            "min": 1,
+            "max": 1
+        },
+        "checks": {
+            "passes": 16,
+            "fails": 0,
+            "thresholds": {
+                "rate>0.99": false
+            },
+            "value": 1
+        },
+        "http_reqs": {
+            "count": 4,
+            "rate": 1.5851523031967731
+        },
+        "vus": {
+            "value": 1,
+            "min": 1,
+            "max": 1
+        },
+        "iteration_duration": {
+            "avg": 630.77596125,
+            "min": 618.320853,
+            "med": 628.2252435,
+            "max": 648.332505,
+            "p(90)": 644.3468781,
+            "p(95)": 646.33969155
+        },
+        "http_req_sending": {
+            "avg": 216.80027475,
+            "min": 211.824272,
+            "med": 217.502082,
+            "max": 220.372663,
+            "p(90)": 220.372663,
+            "p(95)": 220.372663
+        },
+        "http_req_duration": {
+            "avg": 630.5924982500001,
+            "min": 618.195004,
+            "med": 627.9730875,
+            "max": 648.228814,
+            "p(90)": 644.1815479,
+            "p(95)": 646.20518095
+        }
+    }
+}

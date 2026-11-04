@@ -1,0 +1,69 @@
+Carga y comprobación de transportes
+
+La carga completa del sistema se ejecutará después de conectar A y B. Los scripts electorales se detienen si no se indica CONFIRM_REAL_MODULES=true. Activar esa variable no convierte una simulación en evidencia real: hay que apuntarlos a los módulos del grupo y conservar resultados, configuración y recursos del entorno.
+
+WebSocket
+
+connections.js mantiene una conexión por VU, escalona la apertura y conserva una meseta. De forma predeterminada prepara 20.000 conexiones, con rampa de 120 s y meseta de 180 s. El contador c_opened mide aperturas; el número de conexiones simultáneas se verifica en el tablero del servidor. La latencia del eco no es latencia acta-público.
+
+El endpoint /ws/load solo existe en DEMO_MODE=true. Es un eco sin permisos de auditor, sin ingesta ni difusión electoral. No se usa /ws/auditors con 20.000 identidades de auditor: el diseño tiene 120 auditores, y el volumen público pertenece a B.
+
+Ejemplo pequeño desde PowerShell:
+
+    New-Item -ItemType Directory -Force carga/results
+    docker run --rm -v "${PWD}/carga:/scripts" grafana/k6:2.3.0 run -e CONNECTIONS=100 -e RAMP_SECONDS=5 -e HOLD_SECONDS=15 -e WS_URL=ws://host.docker.internal:8080/ws/load --summary-export /scripts/results/ws-smoke.json /scripts/connections.js
+
+Cuatro generadores
+
+Instala k6 2.3.0 en cuatro máquinas Linux o Windows y abre la URL del entorno objetivo. Desde la raíz, ejecuta un índice diferente en cada máquina, aproximadamente al mismo tiempo:
+
+    ./carga/run-generator.ps1 -Index 0 -WsUrl wss://HOST/ws/load
+    ./carga/run-generator.ps1 -Index 1 -WsUrl wss://HOST/ws/load
+    ./carga/run-generator.ps1 -Index 2 -WsUrl wss://HOST/ws/load
+    ./carga/run-generator.ps1 -Index 3 -WsUrl wss://HOST/ws/load
+
+Cada comando recibe el total global 20.000; execution-segment lo divide en cuatro segmentos de 5.000. No cambies el total a 5.000 en cada comando, pues lo dividirías otra vez. Al usar Linux sin PowerShell, el equivalente del primer generador es:
+
+    k6 run --execution-segment '0:1/4' --execution-segment-sequence '0,1/4,1/2,3/4,1' -e CONNECTIONS=20000 -e WS_URL=wss://HOST/ws/load --summary-export generator-0.json carga/connections.js
+
+Los otros segmentos son 1/4:1/2, 1/2:3/4 y 3/4:1. Cada proceso escribe su propio resultado; los umbrales se evalúan por generador. Hay que agregar las mediciones sin promediar percentiles de forma directa. Sincroniza los relojes y el comienzo para que coincidan las mesetas. En Linux establece ulimit -n 65536 y comprueba el rango de puertos efímeros, la memoria y el ancho de banda de cada generador.
+
+run-four-local.mjs comprueba el reparto con cuatro contenedores en una misma máquina. El valor predeterminado es solo 16 conexiones (4 por generador):
+
+    node carga/run-four-local.mjs
+
+Esa comprobación sí se ejecutó. No representa una carga distribuida entre cuatro hosts ni acredita 20.000 conexiones.
+
+Perfil de jornada
+
+    npm run carga:plan
+
+generate-profile.mjs crea profile.json con 6.400 originales y 180 correcciones. Exactamente 3.520 originales (55 %) se programan antes de los 40 minutos; los restantes ocupan los siguientes 80. Incluye minutos de 300 originales. REPLAY_PERCENT admite valores de 4 a 11 y genera copias con el mismo idem y el mismo contenido. El valor predeterminado 7 produce 448 reenvíos, para 7.028 solicitudes totales.
+
+    $env:REPLAY_PERCENT='11'
+    npm run carga:plan
+    Remove-Item Env:REPLAY_PERCENT
+
+profile.json es generado y queda fuera de Git. Conserva el porcentaje usado junto al resultado de cada ejecución. Para volver al perfil base de 7 %, retira REPLAY_PERCENT y ejecuta otra vez npm run carga:plan.
+
+electoral.js conserva los instantes programados y reparte las iteraciones. Su payload se alineó con el shared/ publicado: acta, version, idem, mesa, puesto, municipio, jurado, ts_cierre, votos, sufragantes y hash_foto. Las identidades y los hashes son datos de prueba; A debe aceptar o adaptar el generador a su validación real. El resultado HTTP no basta para la acreditación final; deben añadirse las comprobaciones del recibo real de A, la convergencia de acumulados y la aparición en B.
+
+    k6 run -e CONFIRM_REAL_MODULES=true -e API_URL=https://HOST carga/electoral.js
+
+SPEED acelera el calendario solo para ensayos. Un ensayo acelerado no se reporta como dos horas de jornada real. Se pueden usar los mismos execution-segment para dividir los eventos entre generadores, conservando un inicio común.
+
+SSE y polling
+
+public-sse.js usa k6/x/sse. En la ejecución realizada con k6 2.3.0, k6 descargó automáticamente un binario que incorpora xk6-sse 0.2.0. La primera ejecución necesita salida de red al catálogo y permiso para escribir la caché; para un entorno cerrado prepara y distribuye ese binario. No se afirma que SSE esté integrado en el núcleo de k6.
+
+La comprobación se hizo con transport-fixture.mjs: emite eventos marcados fixture:true, no resultados electorales. Comandos usados, en dos terminales:
+
+    node carga/transport-fixture.mjs
+    docker run --rm -v "${PWD}/carga:/scripts" grafana/k6:2.3.0 run -e CONFIRM_REAL_MODULES=true -e CONNECTIONS=1 -e DURATION=2s -e STOP_AFTER_EVENTS=3 -e SSE_URL=http://host.docker.internal:8099/fixture/sse --summary-export /scripts/results/sse-transport-smoke.json /scripts/public-sse.js
+
+Para B real, cambia SSE_URL a https://HOST/publico/sse?topics=dep y omite STOP_AFTER_EVENTS. La rama publicada expone también https://HOST/publico/poll?topics=dep para POLL_URL. polling.js consulta cada 2 s y usa HTTP estándar. Para comparar transportes hay que conservar payloads, ventanas y tópicos equivalentes, además de medir CPU, memoria, bytes, recuperación y latencia del mismo evento. Esa comparación no se ha realizado con A/B.
+
+Fuentes consultadas:
+https://grafana.com/docs/k6/latest/javascript-api/k6-ws/
+https://grafana.com/docs/k6/latest/extensions/run/
+https://github.com/phymbert/xk6-sse

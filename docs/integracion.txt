@@ -1,0 +1,20 @@
+Revisión del remoto al cerrar C
+
+Se consultaron origin/main (f43ea972), chore/contrato-esqueleto (04162c86) y feature/b-difusion-publica (e7de5a71). B ya está publicado y su implementación fue fusionada en main mientras se desarrollaba C. No se encontraron módulos de ingesta de A en ese árbol. C partió del commit inicial 86e1fdd y permanece independiente, sin fusionar otras ramas.
+
+Coincidencias verificadas por lectura: Node 22, Fastify, ws, node-redis, prom-client, Redis 7 independiente y los nombres verif:cola, st:verif, lock:caso:*, fence:caso:*, pres:aud, pres:info y ch:verif. Los nombres adicionales verif:casos y verif:asignados siguen siendo propuesta de C.
+
+Se alineó la consola con /ws/auditor, conservando /ws/auditors como alias. shared/proposals.ts refleja el formato ActaSubmission observado en shared/src/messages/acta.ts: acta, mesa, puesto, municipio, jurado, ts_cierre, votos, sufragantes, hash_foto, version e idem. caseFromActa traduce esos campos al caso de C; la prueba HTTP utiliza esa conversión. El perfil k6 genera ahora ese mismo formato. La resolución sigue pendiente de aceptación conjunta.
+
+La integración posterior requiere revisar estos puntos, no ejecutar una fusión sin resolverlos:
+
+1. La base común usa workspaces shared/server/publico/carga y server/src/infra/Application.ts. C conserva su arranque independiente, creado cuando el remoto estaba vacío. package.json, package-lock.json, .env.example, .gitignore y README requieren reconciliación.
+2. Crear VerificacionModule con el contrato AppModule publicado: register(ModuleContext), start y stop. Extraer el registro de C de buildApp para usar context.http, context.redis.commands y context.metrics. No arrancar un segundo servidor ni registrar de nuevo /live, /ready, /whoami o /metrics.
+3. Registrar /ws/auditor en context.upgrades con ws en modo noServer. La base común tiene UpgradeRouter; no se debe superponer el listener global de @fastify/websocket de la versión independiente.
+4. Reutilizar las conexiones Redis del contexto y respetar su ciclo de vida; cada módulo solo detiene sus propios temporizadores y suscripciones. Mantener los plazos de respuesta comprobados en C al trasladar las operaciones.
+5. Incorporar las métricas de DifusionMetrics al publicador por instancia. B ofrece /publico/stats y las series public_connections, public_messages_sent_total y public_acta_to_publish_ms. Leerlas dentro del proceso; las réplicas no deben consultarse por HTTP entre sí.
+6. A debe conectar los casos y aplicar las resoluciones con las comprobaciones atómicas descritas en contratos.txt. Su formato de recibo y el cierre idempotente del caso aún necesitan acuerdo.
+
+Rutas publicadas por B: /publico/sse?topics=dep, /publico/poll?topics=dep y /ws/publico?topics=dep. Los scripts SSE y polling aceptan esas URL por variables. Solo se revisaron código y contratos de B; no se atribuyen a C pruebas de integración con su ejecución.
+
+La consola de C, su Compose y sus pruebas siguen siendo ejecutables de forma independiente. El traslado al servidor común y las pruebas conjuntas quedan como tarea explícita de integración del grupo, según el acuerdo de ramas independientes.

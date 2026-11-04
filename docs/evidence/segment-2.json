@@ -1,0 +1,107 @@
+{
+    "root_group": {
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "WebSocket upgrade 101": {
+                    "name": "WebSocket upgrade 101",
+                    "path": "::WebSocket upgrade 101",
+                    "id": "327bebca7e73b809aa886dd87051dd31",
+                    "passes": 4,
+                    "fails": 0
+                }
+            },
+        "name": ""
+    },
+    "metrics": {
+        "ws_session_duration": {
+            "p(90)": 4600.6684245,
+            "p(95)": 4675.693913249999,
+            "avg": 4007.0743549999997,
+            "min": 3263.554337,
+            "med": 4007.0118405,
+            "max": 4750.719402
+        },
+        "data_sent": {
+            "count": 1012,
+            "rate": 202.2054568762655
+        },
+        "ws_msgs_sent": {
+            "count": 4,
+            "rate": 0.7992310548468992
+        },
+        "ws_sessions": {
+            "count": 4,
+            "rate": 0.7992310548468992
+        },
+        "ws_msgs_received": {
+            "count": 4,
+            "rate": 0.7992310548468992
+        },
+        "c_errors": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "c_opened": {
+            "rate": 0.7992310548468992,
+            "count": 4
+        },
+        "vus_max": {
+            "value": 4,
+            "min": 4,
+            "max": 4
+        },
+        "iteration_duration": {
+            "max": 5016.448314,
+            "p(90)": 5015.7586845000005,
+            "p(95)": 5016.10349925,
+            "avg": 5008.54758175,
+            "min": 5001.786101,
+            "med": 5007.977956
+        },
+        "data_received": {
+            "count": 912,
+            "rate": 182.224680505093
+        },
+        "iterations": {
+            "count": 4,
+            "rate": 0.7992310548468992
+        },
+        "ws_connecting": {
+            "avg": 13.4921225,
+            "min": 10.886072,
+            "med": 11.617838500000001,
+            "max": 19.846741,
+            "p(90)": 17.443588300000002,
+            "p(95)": 18.645164649999998,
+            "thresholds": {
+                "p(95)<5000": false
+            }
+        },
+        "checks": {
+            "passes": 4,
+            "fails": 0,
+            "thresholds": {
+                "rate>0.99": false
+            },
+            "value": 1
+        },
+        "c_echo_latency_ms": {
+            "p(95)": 5.85,
+            "avg": 4.5,
+            "min": 3,
+            "med": 4.5,
+            "max": 6,
+            "p(90)": 5.7
+        },
+        "vus": {
+            "value": 4,
+            "min": 4,
+            "max": 4
+        }
+    }
+}

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+web-dist/
 coverage/
 test-results/
 playwright-report/
@@ -11,4 +12,7 @@ playwright-report/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+tmp/
 carga/resultados/
+carga/results/
+carga/profile.json
