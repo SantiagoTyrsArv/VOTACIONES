@@ -1,0 +1,17 @@
+{
+  "browser": "Chrome headless",
+  "replicas": [
+    "c-local-1",
+    "c-local-2"
+  ],
+  "checks": [
+    "Ana toma un caso desde la réplica 1",
+    "Luis ve la asignación desde la réplica 2 y no puede tomarla",
+    "La resolución pendiente no se presenta como aplicada",
+    "El tablero muestra métricas de las dos réplicas y pendientes de A/B",
+    "Sin desbordamiento horizontal a 390 px",
+    "Aviso de 8 minutos comprobado con reloj de navegador adelantado",
+    "Sin errores JavaScript de la aplicación"
+  ],
+  "date": "2026-11-04T01:44:51.685Z"
+}

@@ -1,0 +1,119 @@
+
+> votaciones-persona-c@0.1.0 check
+> npm run typecheck && npm run build && npm test
+
+
+> votaciones-persona-c@0.1.0 typecheck
+> tsc --noEmit && tsc -p tsconfig.web.json --noEmit
+
+
+> votaciones-persona-c@0.1.0 build
+> tsc && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 30 modules transformed.
+rendering chunks...
+computing gzip size...
+../web-dist/index.html                   0.47 kB │ gzip:  0.31 kB
+../web-dist/assets/index-5z5kr1ek.css   12.18 kB │ gzip:  3.46 kB
+../web-dist/assets/index-C6SxZ_UU.js   241.12 kB │ gzip: 75.49 kB
+✓ built in 3.33s
+
+> votaciones-persona-c@0.1.0 test
+> tsx --test --test-concurrency=1 tests/*.test.ts
+
+TAP version 13
+# Subtest: dos instancias: una sola toma gana y el token es global
+ok 1 - dos instancias: una sola toma gana y el token es global
+  ---
+  duration_ms: 286.2728
+  type: 'test'
+  ...
+# Subtest: renovación: extiende a 30 s y rechaza dueño o token distintos
+ok 2 - renovación: extiende a 30 s y rechaza dueño o token distintos
+  ---
+  duration_ms: 49.9381
+  type: 'test'
+  ...
+# Subtest: liberación tardía y resolución obsoleta no afectan al nuevo dueño
+ok 3 - liberación tardía y resolución obsoleta no afectan al nuevo dueño
+  ---
+  duration_ms: 80.7719
+  type: 'test'
+  ...
+# Subtest: presencia: reconexión invalida sesión anterior y un cierre tardío no borra la nueva
+ok 4 - presencia: reconexión invalida sesión anterior y un cierre tardío no borra la nueva
+  ---
+  duration_ms: 41.1878
+  type: 'test'
+  ...
+# Subtest: inactividad: a los 10 minutos no renueva; constantes de aviso a los 8
+ok 5 - inactividad: a los 10 minutos no renueva; constantes de aviso a los 8
+  ---
+  duration_ms: 36.8363
+  type: 'test'
+  ...
+# Subtest: barridos concurrentes: una devolución por caso, sin pérdidas ni duplicados
+ok 6 - barridos concurrentes: una devolución por caso, sin pérdidas ni duplicados
+  ---
+  duration_ms: 433.3657
+  type: 'test'
+  ...
+# Subtest: validación antes de escribir: Redis con tipo incorrecto no deja medio bloqueo
+ok 7 - validación antes de escribir: Redis con tipo incorrecto no deja medio bloqueo
+  ---
+  duration_ms: 37.3936
+  type: 'test'
+  ...
+# Subtest: validación de mensajes y permisos del coordinador
+ok 8 - validación de mensajes y permisos del coordinador
+  ---
+  duration_ms: 30.8735
+  type: 'test'
+  ...
+# Subtest: un caso malformado se rechaza antes de modificar la cola o el bloqueo
+ok 9 - un caso malformado se rechaza antes de modificar la cola o el bloqueo
+  ---
+  duration_ms: 30.5208
+  type: 'test'
+  ...
+# Subtest: entrada de A: idempotencia, conflictos y separación del modo demo
+ok 10 - entrada de A: idempotencia, conflictos y separación del modo demo
+  ---
+  duration_ms: 232.3135
+  type: 'test'
+  ...
+# Subtest: WebSocket real: dos réplicas, avisos, resolución pendiente y reconexión
+ok 11 - WebSocket real: dos réplicas, avisos, resolución pendiente y reconexión
+  ---
+  duration_ms: 551.1738
+  type: 'test'
+  ...
+# Subtest: HTTP y métricas: dos instancias identificables, datos reales y métricas A/B ausentes
+ok 12 - HTTP y métricas: dos instancias identificables, datos reales y métricas A/B ausentes
+  ---
+  duration_ms: 276.9973
+  type: 'test'
+  ...
+# Subtest: Redis sin respuesta: /ready devuelve 503 en plazo y /live sigue en 200
+ok 13 - Redis sin respuesta: /ready devuelve 503 en plazo y /live sigue en 200
+  ---
+  duration_ms: 1928.727
+  type: 'test'
+  ...
+# Subtest: expiración REAL de 30 s: el barrido de 5 s recupera el caso y elimina presencia fantasma
+ok 14 - expiración REAL de 30 s: el barrido de 5 s recupera el caso y elimina presencia fantasma
+  ---
+  duration_ms: 31273.3316
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 43550.2933

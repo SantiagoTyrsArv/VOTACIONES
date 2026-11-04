@@ -1,0 +1,107 @@
+{
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "WebSocket upgrade 101": {
+                    "id": "327bebca7e73b809aa886dd87051dd31",
+                    "passes": 4,
+                    "fails": 0,
+                    "name": "WebSocket upgrade 101",
+                    "path": "::WebSocket upgrade 101"
+                }
+            },
+        "name": "",
+        "path": ""
+    },
+    "metrics": {
+        "ws_connecting": {
+            "med": 12.508745999999999,
+            "max": 15.627314,
+            "p(90)": 14.9085395,
+            "p(95)": 15.267926749999999,
+            "avg": 12.793754,
+            "min": 10.53021,
+            "thresholds": {
+                "p(95)<5000": false
+            }
+        },
+        "vus": {
+            "value": 4,
+            "min": 4,
+            "max": 4
+        },
+        "vus_max": {
+            "min": 4,
+            "max": 4,
+            "value": 4
+        },
+        "iteration_duration": {
+            "max": 5013.700146,
+            "p(90)": 5011.8680088,
+            "p(95)": 5012.7840774,
+            "avg": 5005.920024,
+            "min": 5001.159934,
+            "med": 5004.410008
+        },
+        "data_received": {
+            "count": 912,
+            "rate": 182.29942701035336
+        },
+        "checks": {
+            "passes": 4,
+            "fails": 0,
+            "thresholds": {
+                "rate>0.99": false
+            },
+            "value": 1
+        },
+        "c_opened": {
+            "count": 4,
+            "rate": 0.7995588903962867
+        },
+        "c_echo_latency_ms": {
+            "max": 7,
+            "p(90)": 6.7,
+            "p(95)": 6.85,
+            "avg": 5.25,
+            "min": 4,
+            "med": 5
+        },
+        "c_errors": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "ws_sessions": {
+            "rate": 0.7995588903962867,
+            "count": 4
+        },
+        "ws_session_duration": {
+            "p(95)": 4801.314249999999,
+            "avg": 4132.186897,
+            "min": 3388.514263,
+            "med": 4131.869497,
+            "max": 4876.494331,
+            "p(90)": 4726.134169
+        },
+        "data_sent": {
+            "rate": 202.28839927026053,
+            "count": 1012
+        },
+        "ws_msgs_received": {
+            "count": 4,
+            "rate": 0.7995588903962867
+        },
+        "ws_msgs_sent": {
+            "count": 4,
+            "rate": 0.7995588903962867
+        },
+        "iterations": {
+            "count": 4,
+            "rate": 0.7995588903962867
+        }
+    }
+}

@@ -1,0 +1,43 @@
+{
+  "instances": [
+    {
+      "instance": "c-local-1",
+      "sampledAt": 1793755310425,
+      "uptimeSeconds": 146.091479951,
+      "connections": 50,
+      "messagesIn": 71,
+      "messagesOut": 77,
+      "messagesPerSecond": 6.79951640479426,
+      "rssBytes": 89579520,
+      "heapBytes": 23140272,
+      "rssBytesPerConnection": 1791590.4,
+      "eventLoopP50Ms": 20.267007,
+      "eventLoopP99Ms": 21.184511,
+      "eventLoopMaxMs": 22.315007,
+      "acceptedActasPerMinute": null,
+      "publicLatencyP95Ms": null
+    },
+    {
+      "instance": "c-local-2",
+      "sampledAt": 1793755315181,
+      "uptimeSeconds": 151.13842966,
+      "connections": 50,
+      "messagesIn": 102,
+      "messagesOut": 107,
+      "messagesPerSecond": 13.997484033430384,
+      "rssBytes": 89600000,
+      "heapBytes": 23188000,
+      "rssBytesPerConnection": 1792000,
+      "eventLoopP50Ms": 20.267007,
+      "eventLoopP99Ms": 20.824063,
+      "eventLoopMaxMs": 21.020671,
+      "acceptedActasPerMinute": null,
+      "publicLatencyP95Ms": null
+    }
+  ],
+  "expectedReplicas": 2,
+  "pending": [
+    "actas/min: conectar A",
+    "latencia acta → público: conectar B"
+  ]
+}

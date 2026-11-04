@@ -1,0 +1,94 @@
+Contratos de C, propuesta v1
+
+Estado: pendiente de aceptación por A y B. Esta rama no define por su cuenta las reglas del preconteo. Los tipos ejecutables están en shared/contracts.ts; los borradores de ingesta y difusión, en shared/proposals.ts.
+
+Qué recibe C
+
+Un CaseInput identifica un acta dudosa con id, version, mesa, municipality, reason, priority, receivedAt, votes y source. Los identificadores solo admiten letras, números, guiones y guiones bajos. Los votos son enteros no negativos. La prioridad va de 0 a 100; la mayor se atiende primero y, dentro de ella, gana la antigüedad.
+
+{
+  "id": "E14-176-0042-03",
+  "version": 1,
+  "mesa": "03",
+  "municipality": "Pasto",
+  "reason": "Descuadre contable",
+  "priority": 90,
+  "receivedAt": 1793750400000,
+  "votes": { "candidato_1": 142, "candidato_2": 116 },
+  "source": "A"
+}
+
+receiveDoubtfulCase(store, input) es el adaptador dentro del servidor. También existe POST /api/integration/cases, con Authorization: Bearer INTEGRATION_TOKEN, solo en modo real. Responde QUEUED, EXISTS o CASE_CONFLICT (HTTP 409). Repetir el mismo contenido no duplica el caso. Un contenido distinto, incluso con otra versión, se rechaza para no reemplazar un caso que alguien revisa. A y C deben acordar cómo abrir una nueva revisión tras cerrar la anterior.
+
+Para la integración final conviene que A escriba el caso y la cola dentro de su operación atómica de ingreso. Si usa el endpoint, necesita una salida persistente con reintentos; un POST sin registro durable puede perder el caso si A cae entre consolidar y enviarlo. La rutina de C valida la forma del caso, no su consistencia electoral.
+
+Identidad, sesiones y estados
+
+La identidad proviene del mapa de credenciales del servidor: id, name, role: auditor | coordinator. Un mensaje no puede elegir su propio dueño. La coordinación consulta equipo y métricas; los auditores toman y liberan casos. Se usa una sesión activa por identidad y, a través de ella, un caso activo por auditor.
+
+Al reconectar con la misma credencial, Redis registra la nueva sesión. Si el bloqueo sigue vigente, C puede transferir la sesión del caso conservando el token. La sesión anterior deja de renovar y sus cierres o liberaciones tardías no afectan a la nueva. Si ya expiró, se espera la devolución a la cola y se toma de nuevo con un token mayor.
+
+Estados: pending → assigned → resolved. Liberación o abandono: assigned → pending. Esta entrega no realiza la transición a resolved, porque falta aplicar la resolución en A. Solicitar aprobar, corregir o rechazar devuelve PENDING_A; conserva votos, bloqueo y caso abierto.
+
+Redis
+
+En modo real se utilizan estas claves. En demostración todas llevan demo:; las pruebas automatizadas usan un prefijo único test-c:<uuid>:. {acta} y {instancia} son marcadores de posición, no llaves literales de Redis Cluster.
+
+| Clave | Tipo | Contenido / duración |
+| --- | --- | --- |
+| verif:casos | Hash | acta → CaseRecord, sin caducidad durante la jornada |
+| verif:cola | Sorted Set | Actas pendientes, score receivedAt - priority × 10000000000 |
+| verif:asignados | Sorted Set | Actas asignadas, score de vencimiento; permite barridos acotados |
+| lock:caso:{acta} | String | auditor:token, TTL 30.000 ms |
+| fence:caso:{acta} | String contador | Token monótono, sin TTL; nunca se elimina al liberar |
+| pres:aud | Sorted Set | auditor → último latido en ms |
+| pres:info | Hash | Nombre, rol, sesión, instancia, caso y tiempos |
+| st:verif | Stream | Historial de toma, liberación, reanudación y recuperación, MAXLEN ~ 10000 |
+| ch:verif | Pub/Sub | Aviso de cambio; no es fuente durable de recuperación |
+| metrics:instance:{instancia} | String JSON | Muestra real con TTL 15 s |
+| metrics:instances | Sorted Set | Índice por instante de la muestra; se retiran entradas de más de 24 h |
+
+Se conservan verif, lock:caso, fence:caso, pres:aud, pres:info, st:verif y ch:verif previstos en el diseño. C no escribe tot:*, rank:*, acta:*, idem:*, st:dep, st:mun:*, st:pue:* ni ch:actas, que pertenecen a A/B.
+
+Toma, renovación, liberación, reanudación y recuperación se ejecutan en Lua. Antes de escribir se comprueban los tipos de las claves y los campos necesarios del caso. Redis aporta su reloj mediante TIME. El barrido consulta hasta 500 concesiones vencidas cada 5 s y cada devolución vuelve a validar el bloqueo dentro de Lua. Ejecutarlo en varias réplicas no duplica la devolución ni el evento.
+
+La consola envía latidos cada 10 s. Solo una sesión actual y presente puede renovar. A los 8 minutos muestra un aviso; tras 10 minutos sin actividad deja de prolongar la concesión. El caso puede permanecer ocupado hasta otros 30 s y esperar hasta 5 s al barrido. Al caer un auditor, la recuperación normal tarda hasta 35 s, además de retrasos del sistema; no se promete una devolución en 30 s exactos.
+
+WebSocket de auditoría
+
+Ruta: /ws/auditor, alineada con el esqueleto publicado; /ws/auditors queda como alias. Primer mensaje en menos de 5 s:
+
+{ "type": "auth", "requestId": "req-1", "credential": "credencial-asignada" }
+
+Luego se aceptan heartbeat (active: boolean), sync, take (caseId), release (caseId, token) y resolve (caseId, token, resolution). Todos incluyen requestId. resolution lleva action: approve | correct | reject, note de 5 a 1000 caracteres y votes obligatorio al corregir.
+
+El servidor envía hello, snapshot, changed, ack o error, siempre con protocol: 1 e instance. Los ack se correlacionan por requestId. TAKEN incluye token como string, para no convertir contadores de Redis a flotantes. Códigos frecuentes: BUSY, STALE_TOKEN, SESSION_REPLACED, INACTIVE, FORBIDDEN, PENDING_A y UNAVAILABLE.
+
+changed pide una fotografía nueva, no contiene la verdad del caso. La consola sincroniza además cada 10 s, por lo que recupera avisos perdidos. Reconecta con espera exponencial y jitter hasta 30 s. Cada servidor prueba ping/pong cada 15 s. Un búfer de salida de más de 64 KiB fuerza reconexión y fotografía, suficiente para las consolas de C; el control fino de clientes públicos corresponde a B.
+
+Cómo debe aplicar A una resolución
+
+ResolutionAdapter está en server/integration.ts. El adaptador entregado solo verifica vigencia y responde pendiente. Sustituirlo requiere una operación real con estas comprobaciones en el mismo Lua que cambia los acumulados, antes de toda escritura:
+
+1. El caso existe, sigue assigned y su versión es la revisada.
+2. GET lock:caso:{acta} coincide exactamente con auditor:token y sigue vivo.
+3. GET fence:caso:{acta} es igual al token de la solicitud. No basta comprobar que sea mayor que el último aplicado: el token debe ser el vigente.
+4. Coinciden dueño y sesión del caso; esa sesión sigue siendo la actual en pres:info y su latido no supera 30 s.
+5. La resolución y los votos cumplen las reglas de A; la clave de idempotencia no describe otra resolución.
+6. Dentro de esa misma ejecución: aplicar delta y versión electoral, escribir streams y recibo, cerrar el caso, retirar bloqueo/asignación, actualizar presencia y publicar los avisos.
+
+Comprobar el token en C y hacer después un POST a A deja una carrera: el bloqueo podría expirar entre ambas operaciones. El token debe cercar la escritura que importa. A debe devolver un recibo durable; sin él, C no anuncia APPLIED. También hay que cubrir la caída entre aplicar y responder con un reintento idempotente del mismo recibo.
+
+Puntos de métricas para A y B
+
+Cada módulo se registra en buildApp, dentro del mismo servidor, y recibe el Redis y las métricas de esa réplica. No se despliegan A/B/C como servicios que se llamen entre sí.
+
+- A: metrics.recordAcceptedActa() después de una nueva aplicación, nunca ante un reenvío. La ventana mostrada es de 60 s.
+- B: metrics.recordPublicDelivery(occurredAt) cuando emite realmente el dato. El timestamp debe viajar desde el ingreso original; se conserva la ventana reciente para p95.
+- B debe ampliar el recuento de conexiones y envíos para incluir sus transportes. Ahora solo representa C y el banco de eco.
+
+Mientras esos hooks no se llamen, la API devuelve null, y el tablero indica que faltan A/B. RSS por conexión divide la memoria total del proceso: no es una medición incremental del costo de un socket. El monitor del Event Loop usa resolución de 20 ms; no se interpreta su base próxima a 20 ms como latencia electoral.
+
+Límites de persistencia
+
+Redis es único, con volumen, AOF everysec y política noeviction. Los contadores de cercado no deben borrarse ni volver atrás. Un reinicio ordenado conserva los datos; una caída del host puede perder aproximadamente el último segundo de AOF. Esa configuración no garantiza durabilidad síncrona de cada confirmación. Antes de acreditar el sistema electoral completo hay que acordar con A el tratamiento de ese caso, la política de recuperación de Redis y la validación de sus recibos.
