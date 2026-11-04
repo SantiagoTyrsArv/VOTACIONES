@@ -119,5 +119,5 @@ Cree un token clásico de GitHub con `read:packages` y agregue a los parámetros
 ## Riesgos conocidos
 
 - **Redis sobre Azure Files (SMB).** El AOF funciona, pero SMB es más lento que un disco local. Con `everysec` no afecta la latencia de los comandos. Si hubiera problemas de permisos o bloqueos, quitar el volumen deja Redis en memoria; se pierde la persistencia ante reinicios de Redis, pero no la de las réplicas.
-- **Región.** Azure for Students limita las regiones disponibles. Si `eastus2` falla, pruebe `-Ubicacion westus2` o `centralus`.
+- **Región.** Azure for Students solo permite ciertas regiones (política «Allowed locations»): `eastus2` no suele estar. Si no se pasa `-Ubicacion`, `desplegar.ps1` lee la lista de la política, la muestra y elige una que tenga Container Apps. El grupo de recursos puede quedar en otra región; solo guarda metadatos. Para ver la lista a mano: `az policy assignment list --query "[].parameters.listOfAllowedLocations.value[]" -o tsv`.
 - **20.000 conexiones (RT-8).** Con 8 réplicas de 0,5 vCPU son unas 2.500 conexiones por réplica. Para la prueba de carga conviene `cpu='1'` y `memoria='2Gi'` (parámetros de `main.bicep`) durante la prueba.

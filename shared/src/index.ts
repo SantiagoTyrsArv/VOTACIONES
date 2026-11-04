@@ -9,3 +9,4 @@ export * from './messages/acta.js';
 export * from './messages/broadcast.js';
 export * from './messages/publicEvents.js';
 export * from './reconnectBackoff.js';
+export * from './jornada.js';

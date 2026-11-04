@@ -6,6 +6,7 @@ import { registerStaticFiles } from '../infra/StaticFiles.js';
 import { ConexionRedis } from '../redis/conexion.js';
 import { AutenticadorJurados } from './autenticacion.js';
 import { registrarHttpIngesta } from './http.js';
+import { JornadaSimulada } from './jornada.js';
 import { ResolucionAtomica } from './resolucion.js';
 import { ServicioIngesta } from './servicio.js';
 import { crearWsJurados, recordarJurado } from './ws-jurados.js';
@@ -24,9 +25,18 @@ export class IngestaModule implements AppModule {
 
   /** Adaptador que C usa para aplicar resoluciones de auditores con el Lua de A. */
   readonly resolucion: ResolucionAtomica;
+  /** Jornada simulada activable desde la consola de coordinación (RT-10). */
+  readonly jornada: JornadaSimulada;
+  private servicio: ServicioIngesta | null = null;
 
   constructor(instancia = idDeReplica() ?? 'local') {
     this.resolucion = new ResolucionAtomica({ redis: () => this.redis, instancia });
+    this.jornada = new JornadaSimulada({
+      redis: () => this.redis,
+      ingesta: () => this.servicio,
+      instancia,
+      habilitada: process.env.SIMULACION_HABILITADA === 'true',
+    });
   }
 
   async register(context: ModuleContext): Promise<void> {
@@ -62,6 +72,7 @@ export class IngestaModule implements AppModule {
     });
     this.servirPwa(context);
     this.redis = redis;
+    this.servicio = ingesta;
     this.jurados = jurados;
   }
 
