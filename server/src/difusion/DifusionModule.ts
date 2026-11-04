@@ -112,6 +112,11 @@ export class DifusionModule implements AppModule {
 
   stats() { return this.metrics.snapshot(); }
 
+  /** Latencia acta → público de cada ventana difundida (ms). Disponible tras register(). */
+  onPublishLatency(listener: (ms: number) => void): void {
+    this.metrics.onPublishLatency(listener);
+  }
+
   async start(): Promise<void> {
     this.eventLoop.start();
     this.context.health.on('change', (change) => void this.onHealthChange(change));

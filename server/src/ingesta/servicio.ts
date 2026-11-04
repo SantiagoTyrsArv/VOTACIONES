@@ -42,12 +42,21 @@ export interface MetricasIngesta {
 
 export class ServicioIngesta {
   readonly metricas: MetricasIngesta = { porEstado: {}, latenciasMs: [] };
+  private readonly alRegistrar: Array<(r: RespuestaIngesta) => void> = [];
+
+  /** Avisa cada acta aplicada por primera vez (no los reenvíos ni los rechazos). */
+  onActaRegistrada(listener: (r: RespuestaIngesta) => void): void {
+    this.alRegistrar.push(listener);
+  }
 
   constructor(private readonly op: OpcionesIngesta) {}
 
   async recibir(entrada: unknown, jurado: JuradoAutenticado = null): Promise<RespuestaIngesta> {
     const r = await this.procesar(entrada, jurado);
     this.metricas.porEstado[r.estado] = (this.metricas.porEstado[r.estado] ?? 0) + 1;
+    if (r.estado === ESTADOS.REGISTRADA || r.estado === ESTADOS.DUDOSA_EN_VERIFICACION) {
+      for (const listener of this.alRegistrar) listener(r);
+    }
     return r;
   }
 

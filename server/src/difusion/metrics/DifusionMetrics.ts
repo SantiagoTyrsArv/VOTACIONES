@@ -41,6 +41,7 @@ export class DifusionMetrics {
   private readonly backpressureTotals: Record<BackpressureAction, number> = { atrasada: 0, reanudada: 0, desconectada: 0 };
   private rate = { lastAtMs: Date.now(), lastMessages: 0, perSecond: 0 };
   private eventLoop: EventLoopDelaySample = { p50Ms: 0, p99Ms: 0, maxMs: 0, atMs: Date.now() };
+  private readonly latencyListeners: Array<(ms: number) => void> = [];
 
   constructor(
     registry: Registry,
@@ -131,7 +132,14 @@ export class DifusionMetrics {
   }
 
   publishLatency(ms: number): void {
-    if (ms >= 0) this.latency.observe(ms);
+    if (ms < 0) return;
+    this.latency.observe(ms);
+    for (const listener of this.latencyListeners) listener(ms);
+  }
+
+  /** Avisa cada latencia acta → público medida (la usa el tablero de C, RT-7). */
+  onPublishLatency(listener: (ms: number) => void): void {
+    this.latencyListeners.push(listener);
   }
 
   fanoutCompleted(mode: string, durationMs: number): void {

@@ -19,6 +19,12 @@ import { VerificationStore, type Actor } from './store.js';
 import { PendingAAdapter, receiveDoubtfulCase, type ResolutionAdapter } from './integration.js';
 import { RuntimeMetrics, type PublicStatsSource } from './metrics.js';
 
+/** Señales de A y B para el tablero (RT-7): actas/min y latencia acta → público. */
+export interface PlatformSignals {
+  onActaAccepted?(listener: () => void): void;
+  onPublicLatency?(listener: (ms: number) => void): void;
+}
+
 const equalSecret = (left: string, right: string) => {
   const a = Buffer.from(left),
     b = Buffer.from(right);
@@ -29,10 +35,17 @@ async function registerVerification(
   config: Config,
   adapter: ResolutionAdapter,
   publicStats?: PublicStatsSource,
+  signals: PlatformSignals = {},
 ) {
   const app = context.http;
   const store = new VerificationStore(config, context.redis);
   const metrics = new RuntimeMetrics(store, context.metrics, publicStats);
+  signals.onActaAccepted?.(() => metrics.recordAcceptedActa());
+  signals.onPublicLatency?.((ms) => metrics.recordPublicLatency(ms));
+  const pendingSignals = [
+    ...(signals.onActaAccepted ? [] : ['actas/min: conectar A']),
+    ...(signals.onPublicLatency ? [] : ['latencia acta → público: conectar B']),
+  ];
   const wsServer = new WebSocketServer({
     noServer: true,
     maxPayload: 16384,
@@ -107,10 +120,7 @@ async function registerVerification(
     return {
       instances: await metrics.all(),
       expectedReplicas: Number(process.env.EXPECTED_REPLICAS || 2),
-      pending: [
-        'actas/min: conectar A',
-        'latencia acta → público: validar con la ingesta real de A',
-      ],
+      pending: pendingSignals,
     };
   });
   app.post('/api/integration/cases', async (req, reply) => {
@@ -378,6 +388,7 @@ export class VerificacionModule implements AppModule {
     private readonly config: Config,
     private readonly adapter: ResolutionAdapter = new PendingAAdapter(),
     private readonly publicStats?: PublicStatsSource,
+    private readonly signals: PlatformSignals = {},
   ) {}
   get store() {
     return this.runtime.store;
@@ -389,7 +400,13 @@ export class VerificacionModule implements AppModule {
     return this.runtime.snapshot;
   }
   async register(context: ModuleContext) {
-    this.runtime = await registerVerification(context, this.config, this.adapter, this.publicStats);
+    this.runtime = await registerVerification(
+      context,
+      this.config,
+      this.adapter,
+      this.publicStats,
+      this.signals,
+    );
   }
   async start() {
     await this.runtime.start();
