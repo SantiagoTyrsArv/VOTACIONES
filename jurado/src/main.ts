@@ -1,4 +1,4 @@
-import { CASILLAS, esEstadoFinal, validarActa, type Acta, type RespuestaIngesta } from '@votaciones/shared';
+import { CASILLAS, SUBPROTOCOLO_JURADOS, esEstadoFinal, validarActa, type Acta, type RespuestaIngesta } from '@votaciones/shared';
 import { borrar, guardar, todos, type Pendiente } from './cola';
 import './style.css';
 
@@ -11,8 +11,9 @@ ${[['acta','Identificador','E14-176-4201-03'],['mesa','Mesa','4201'],['puesto','
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 /**
- * Credencial del jurado: llega por enlace (`?credencial=…`, p. ej. un QR) o se
- * escribe. Se quita de la URL para que no quede en el historial; se guarda con
+ * Credencial del jurado: llega por enlace (`#credencial=…`, p. ej. un QR; el
+ * fragmento nunca viaja al servidor) o se escribe. Se quita de la URL para que
+ * no quede en el historial; se guarda con
  * cada acta en la cola (IndexedDB), así sobrevive a recargas sin red.
  */
 const PATRON_CREDENCIAL = /^v1\.(JUR-\d{1,8})\.\d{1,12}\.[A-Za-z0-9_-]{20,}$/;
@@ -29,12 +30,9 @@ function usarCredencial(valor: string): void {
   ws?.close();
 }
 {
-  const url = new URL(location.href);
-  const recibida = url.searchParams.get('credencial');
-  if (recibida) {
-    url.searchParams.delete('credencial');
-    history.replaceState(null, '', url);
-  }
+  const fragmento = new URLSearchParams(location.hash.slice(1));
+  const recibida = fragmento.get('credencial');
+  if (recibida) history.replaceState(null, '', location.pathname + location.search);
   queueMicrotask(() => usarCredencial(recibida ?? ''));
 }
 const campos = ['acta','mesa','puesto','municipio','version','jurado'] as const;
@@ -50,8 +48,9 @@ function nuevoIdem(): string {
 function conectar(): void {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
   const protocolo = location.protocol === 'https:' ? 'wss' : 'ws';
-  const consulta = credencial ? `?credencial=${encodeURIComponent(credencial)}` : '';
-  ws = new WebSocket(`${protocolo}://${location.host}/ws/jurados${consulta}`);
+  // La credencial va en Sec-WebSocket-Protocol, nunca en la URL.
+  const protocolos = credencial ? [SUBPROTOCOLO_JURADOS, credencial] : [SUBPROTOCOLO_JURADOS];
+  ws = new WebSocket(`${protocolo}://${location.host}/ws/jurados`, protocolos);
   ws.onopen = () => { actualizarRed(); void procesar(); };
   ws.onclose = () => { actualizarRed(); setTimeout(conectar, 1000 + Math.random() * 3000); };
   ws.onerror = () => ws?.close();

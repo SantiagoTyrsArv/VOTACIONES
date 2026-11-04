@@ -5,7 +5,7 @@
  * (ver `@votaciones/shared/credencial`). Sin él, la ingesta acepta el jurado
  * del cuerpo: modo de desarrollo, avisado en el log al arrancar.
  */
-import { ESTADOS, MOTIVOS_RECHAZO, type RespuestaIngesta } from '@votaciones/shared';
+import { ESTADOS, MOTIVOS_RECHAZO, SUBPROTOCOLO_JURADOS, type RespuestaIngesta } from '@votaciones/shared';
 import { credencialDeCabecera, verificarCredencial } from '@votaciones/shared/credencial';
 import type { JuradoAutenticado } from './servicio.js';
 
@@ -36,10 +36,13 @@ export class AutenticadorJurados {
     return this.autenticar(credencialDeCabecera(autorizacion));
   }
 
-  /** La credencial viaja en la URL del WebSocket: el navegador no deja poner cabeceras. */
-  autenticarUrl(url: string | undefined): ResultadoAutenticacion {
-    const consulta = url?.includes('?') ? url.slice(url.indexOf('?') + 1) : '';
-    const credencial = new URLSearchParams(consulta).get('credencial') ?? undefined;
+  /**
+   * WebSocket: la credencial es el valor de Sec-WebSocket-Protocol distinto del
+   * subprotocolo (ver SUBPROTOCOLO_JURADOS). No se acepta en la URL.
+   */
+  autenticarSubprotocolos(cabecera: string | string[] | undefined): ResultadoAutenticacion {
+    const valores = [cabecera ?? []].flat().flatMap((v) => v.split(',')).map((v) => v.trim());
+    const credencial = valores.find((v) => v && v !== SUBPROTOCOLO_JURADOS);
     return this.autenticar(credencial);
   }
 }
