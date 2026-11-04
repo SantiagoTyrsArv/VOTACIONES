@@ -18,10 +18,13 @@ const verificationConfig = {
 };
 process.env.CONSOLE_DIR ??= fileURLToPath(new URL('../../web-dist', import.meta.url));
 const diffusion = new DifusionModule();
+const ingesta = new IngestaModule(config.instanceId);
+// En demostración C usa sus casos de ejemplo (prefijo demo:); en real, A aplica las resoluciones.
+const resolutionAdapter = verificationConfig.demo ? undefined : ingesta.resolucion;
 const modules: AppModule[] = [
-  new IngestaModule(), // Persona A
+  ingesta, // Persona A
   diffusion, // Persona B
-  new VerificacionModule(verificationConfig, undefined, () => diffusion.stats()), // Persona C
+  new VerificacionModule(verificationConfig, resolutionAdapter, () => diffusion.stats()), // Persona C
 ];
 const app = new Application(config, modules);
 

@@ -1,8 +1,43 @@
 --[[
-aplicar_acta.lua · ingesta y resolución de verificación en una operación atómica.
+aplicar_acta.lua · RF-1, RF-2 y RF-3 (y la resolución de RF-7) en una sola
+operación atómica.
 
-La fase 1 lee y valida todo; la fase 2 escribe. En modo resolucion se comprueba
-caso, versión, dueño, sesión, lock y fencing token antes de cambiar los votos.
+Redis ejecuta el script completo sin intercalar comandos de otros clientes:
+nadie puede leer el municipio actualizado y el puesto sin actualizar, y si
+una instancia Node muere a mitad, el script ya terminó o nunca empezó.
+
+Lua NO revierte escrituras si falla a mitad, por eso el script tiene dos
+fases: (1) leer y validar TODO sin escribir; (2) escribir.
+
+KEYS (todas declaradas, como exige Redis y como necesitaría un clúster):
+  1  idem:{idem} | resolucion:{acta}:{token}   12 st:mun:{m}
+  2  acta:{id}                                 13 st:dep
+  3  cat:mesa:{n}                              14 seq:recibo
+  4  tot:mesa:{n}                              15 verif:cola      (C)
+  5  tot:pue:{p}                               16 st:verif        (C)
+  6  tot:mun:{m}                               17 verif:casos     (C)
+  7  tot:dep                                   18 verif:asignados (C)
+  8  rank:pue:{p}                              19 lock:caso:{id}  (C)
+  9  rank:mun:{m}                              20 fence:caso:{id} (C)
+  10 rank:dep                                  21 pres:aud        (C)
+  11 st:pue:{p}                                22 pres:info       (C)
+
+ARGV:
+  1  acta (JSON canónico, ya validado en formato)   7  MAXLEN de los streams
+  2  casillas en orden canónico                     8  canal ch:actas
+  3  candidatos (entran al ranking)                 9  canal ch:verif
+  4  firma del contenido                            10 modo: jurado | verificacion | resolucion
+  5  instancia que ingiere                          11 contexto de resolución (JSON) o ''
+  6  TTL de idem en segundos
+
+Las actas dudosas y los conflictos se escriben como casos de C en
+verif:casos (mismo formato que CaseRecord) y entran a verif:cola con la
+prioridad de C: score = recibida − prioridad·10¹⁰ (menor = más urgente).
+En modo resolucion se comprueban caso, versión, dueño, sesión, lock y
+fencing token antes de cambiar votos: así un auditor tardío no pisa al
+dueño vigente (no hay carrera entre comprobar y aplicar).
+
+Respuesta: { estado, recibo_json_o_vacío, motivo_o_vacío }
 ]]
 
 local acta = cjson.decode(ARGV[1])
@@ -37,8 +72,53 @@ local function nuevo_caso(ms, motivo, prioridad)
   }
 end
 
+-- Prioridad de C: menor score = se atiende antes.
+local function puntaje(c)
+  return c.receivedAt - c.priority * 10000000000
+end
+
+-- Deja el caso sin dueño (el token anterior queda obsoleto para siempre).
+local function sin_asignacion(c)
+  c.owner = nil
+  c.ownerName = nil
+  c.sessionId = nil
+  c.token = nil
+  c.assignedAt = nil
+  c.lastActivity = nil
+  c.leaseUntil = nil
+  redis.call('ZREM', KEYS[18], acta.acta)
+  redis.call('DEL', KEYS[19])
+end
+
+-- Encola esta versión como caso pendiente. Si ya había un caso abierto de la
+-- misma versión se conserva (y su posible dueño); si era de otra versión o ya
+-- estaba resuelto, se reemplaza por uno nuevo.
+local function encolar(caso, ms, motivo, prioridad)
+  if caso and caso.status ~= 'resolved' and caso.version == acta.version then
+    return caso
+  end
+  if caso and caso.status == 'assigned' then sin_asignacion(caso) end
+  local nuevo = nuevo_caso(ms, motivo, prioridad)
+  redis.call('HSET', KEYS[17], acta.acta, cjson.encode(nuevo))
+  redis.call('ZADD', KEYS[15], puntaje(nuevo), acta.acta)
+  return nuevo
+end
+
+local function cerrar_caso(caso, resolucion, recibo)
+  if caso.status == 'assigned' then sin_asignacion(caso) end
+  caso.status = 'resolved'
+  caso.resolution = resolucion
+  caso.appliedReceipt = recibo
+  redis.call('HSET', KEYS[17], acta.acta, cjson.encode(caso))
+  redis.call('ZREM', KEYS[15], acta.acta)
+  redis.call('ZREM', KEYS[18], acta.acta)
+end
+
 local function evento_verif(tipo, ms, extra)
   local e = extra or {}
+  -- type/caseId: vocabulario de C; tipo/acta: vocabulario de A.
+  e.type = tipo
+  e.caseId = acta.acta
   e.tipo = tipo
   e.acta = acta.acta
   e.version = tostring(acta.version)
@@ -116,11 +196,11 @@ elseif acta.version == v_old then
     return { 'YA_REGISTRADA', recibo_vigente, '' }
   end
   redis.call('HSET', KEYS[2], 'conflicto', '1')
-  redis.call('ZADD', KEYS[15], ms - 3600000, acta.acta)
-  if not caso then
-    caso = nuevo_caso(ms, 'Conflicto de versión', 100)
-    redis.call('HSET', KEYS[17], acta.acta, cjson.encode(caso))
+  -- Si un auditor ya resolvió esta versión, el conflicto no reabre el caso.
+  if caso and caso.status == 'resolved' and caso.version == acta.version then
+    return { 'RECHAZADA', recibo_vigente, 'CONFLICTO_VERSION' }
   end
+  encolar(caso, ms, 'Conflicto de versión: misma versión con otros votos', 100)
   evento_verif('encolada', ms, { motivo = 'conflicto_version' })
   return { 'RECHAZADA', recibo_vigente, 'CONFLICTO_VERSION' }
 end
@@ -179,6 +259,8 @@ redis.call('HSET', KEYS[2],
   'jurado', acta.jurado,
   'votos', cjson.encode(acta.votos),
   'sufragantes', tostring(acta.sufragantes),
+  'hash_foto', acta.hash_foto or '',
+  'ts_cierre', tostring(acta.ts_cierre or 0),
   'votos_aplicados', nuevos and cjson.encode(nuevos) or '',
   'recibo', recibo,
   'actualizada', tostring(ms))
@@ -221,20 +303,7 @@ if hay_cambio then
 end
 
 if modo_resolucion then
-  caso.status = 'resolved'
-  caso.resolution = res.resolution
-  caso.appliedReceipt = recibo
-  caso.owner = nil
-  caso.ownerName = nil
-  caso.sessionId = nil
-  caso.token = nil
-  caso.assignedAt = nil
-  caso.lastActivity = nil
-  caso.leaseUntil = nil
-  redis.call('HSET', KEYS[17], acta.acta, cjson.encode(caso))
-  redis.call('ZREM', KEYS[15], acta.acta)
-  redis.call('ZREM', KEYS[18], acta.acta)
-  redis.call('DEL', KEYS[19])
+  cerrar_caso(caso, res.resolution, recibo)
   if presencia and presencia.sessionId == res.sessionId then
     presencia.caseId = nil
     redis.call('HSET', KEYS[22], res.actorId, cjson.encode(presencia))
@@ -246,28 +315,13 @@ end
 
 if not valida then
   local desfase = math.abs(suma - acta.sufragantes)
-  redis.call('ZADD', KEYS[15], ms - desfase * 60000, acta.acta)
-  if not caso or caso.status == 'resolved' then
-    caso = nuevo_caso(ms, 'Descuadre contable', math.min(100, 90 + desfase))
-    redis.call('HSET', KEYS[17], acta.acta, cjson.encode(caso))
-  end
+  -- Cada voto de descuadre sube la prioridad (90 + desfase, tope 99; 100 = conflicto).
+  encolar(caso, ms, string.format('Descuadre contable: %d votos de diferencia', desfase),
+    math.min(99, 90 + desfase))
   evento_verif('encolada', ms, { motivo = 'descuadre', desfase = tostring(desfase) })
-elseif redis.call('ZREM', KEYS[15], acta.acta) == 1 then
-  if caso and caso.status ~= 'resolved' then
-    caso.status = 'resolved'
-    caso.resolution = { action = 'approve', note = 'Superada por una versión válida del jurado' }
-    caso.appliedReceipt = recibo
-    caso.owner = nil
-    caso.ownerName = nil
-    caso.sessionId = nil
-    caso.token = nil
-    caso.assignedAt = nil
-    caso.lastActivity = nil
-    caso.leaseUntil = nil
-    redis.call('HSET', KEYS[17], acta.acta, cjson.encode(caso))
-    redis.call('ZREM', KEYS[18], acta.acta)
-    redis.call('DEL', KEYS[19])
-  end
+elseif caso and caso.status ~= 'resolved' then
+  -- Una versión válida del jurado supera al caso abierto.
+  cerrar_caso(caso, { action = 'approve', note = 'Superada por una versión válida del jurado' }, recibo)
   evento_verif('retirada', ms, { motivo = modo_verif and 'verificada' or 'superada' })
 end
 

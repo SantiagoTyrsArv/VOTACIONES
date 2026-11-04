@@ -49,7 +49,8 @@ export const claves = {
   fenceCaso: (id: string) => `fence:caso:${id}`,
   presAud: () => 'pres:aud',
   presInfo: () => 'pres:info',
-  resolucion: (id: string) => `resolucion:${id}`,
+  /** Idempotencia de la resolución de un caso: una por toma (token de cercado). */
+  resolucion: (id: string, token: string) => `resolucion:${id}:${token}`,
   streamVerif: () => 'st:verif',
 } as const;
 
