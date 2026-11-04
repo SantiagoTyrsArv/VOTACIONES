@@ -13,7 +13,8 @@ export interface RedisHealthChange {
  * público recibe "congelado". Emite "change" solo cuando el estado cambia.
  */
 export class RedisHealthMonitor extends EventEmitter<{ change: [RedisHealthChange] }> {
-  private healthy = false;
+  /** null = aún sin sondear; así el primer resultado siempre se notifica. */
+  private healthy: boolean | null = null;
   private sinceMs = Date.now();
   private timer: NodeJS.Timeout | null = null;
 
@@ -26,7 +27,7 @@ export class RedisHealthMonitor extends EventEmitter<{ change: [RedisHealthChang
   }
 
   get isHealthy(): boolean {
-    return this.healthy;
+    return this.healthy === true;
   }
 
   get stateSinceMs(): number {
