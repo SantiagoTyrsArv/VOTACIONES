@@ -1,4 +1,7 @@
-import { readFileSync } from 'node:fs';
+/**
+ * Puente TypeScript ↔ aplicar_acta.lua: arma KEYS/ARGV desde el contrato y
+ * traduce la respuesta del script a una RespuestaIngesta.
+ */
 import {
   CANDIDATOS,
   CASILLAS,
@@ -11,28 +14,18 @@ import {
   type Estado,
   type MotivoRechazo,
   type Recibo,
-  type Resolution,
   type RespuestaIngesta,
 } from '@votaciones/shared';
-import type { RedisClient } from '../infra/RedisConnections.js';
 import type { ConexionRedis } from '../redis/conexion.js';
 
-export type ModoAplicacion = 'jurado' | 'verificacion' | 'resolucion';
+export type ModoAplicacion = 'jurado' | 'verificacion';
 
-export interface ResolucionContexto {
-  caseId: string;
-  token: string;
-  actorId: string;
-  sessionId: string;
-  resolution: Resolution;
-}
-
-export function clavesDeActa(a: Acta, modo: ModoAplicacion = 'jurado'): string[] {
+export function clavesDeActa(a: Acta): string[] {
   const pue = topico.pue(a.puesto);
   const mun = topico.mun(a.municipio);
   const dep = topico.dep();
   return [
-    modo === 'resolucion' ? claves.resolucion(a.acta) : claves.idem(a.idem),
+    claves.idem(a.idem),
     claves.acta(a.acta),
     claves.catMesa(a.mesa),
     claves.totMesa(a.mesa),
@@ -48,21 +41,10 @@ export function clavesDeActa(a: Acta, modo: ModoAplicacion = 'jurado'): string[]
     claves.seqRecibo(),
     claves.verifCola(),
     claves.streamVerif(),
-    claves.verifCasos(),
-    claves.verifAsignados(),
-    claves.lockCaso(a.acta),
-    claves.fenceCaso(a.acta),
-    claves.presAud(),
-    claves.presInfo(),
   ];
 }
 
-export function argumentosDeActa(
-  a: Acta,
-  instancia: string,
-  modo: ModoAplicacion,
-  resolucion?: ResolucionContexto,
-): string[] {
+export function argumentosDeActa(a: Acta, instancia: string, modo: ModoAplicacion): string[] {
   return [
     JSON.stringify(a),
     CASILLAS.join(','),
@@ -74,7 +56,6 @@ export function argumentosDeActa(
     canales.actas,
     canales.verif,
     modo,
-    resolucion ? JSON.stringify(resolucion) : '',
   ];
 }
 
@@ -89,51 +70,23 @@ const DETALLES: Record<string, string> = {
   CONFLICTO_VERSION:
     'Ya existe esta misma versión con otros valores. Si es una corrección, envíela como una versión nueva.',
   IDEM_REUTILIZADO: 'La clave de envío ya se usó para otra acta o versión.',
-  STALE_TOKEN: 'El bloqueo, la sesión o la versión del caso ya no son vigentes.',
-  INVALID_CASE: 'El caso de verificación no coincide con el acta registrada.',
-  RESOLUCION_CONFLICTO: 'Ya existe una resolución distinta para este acta.',
 };
 
-type Ejecutor = (keys: string[], args: string[]) => Promise<unknown>;
-const fuenteResolucion = readFileSync(new URL('../redis/lua/aplicar_acta.lua', import.meta.url), 'utf8');
-
-async function ejecutar(
-  acta: Acta,
-  instancia: string,
-  modo: ModoAplicacion,
-  resolucion: ResolucionContexto | undefined,
-  evaluar: Ejecutor,
-): Promise<RespuestaIngesta> {
-  const [estado, reciboJson, motivo] = (await evaluar(
-    clavesDeActa(acta, modo),
-    argumentosDeActa(acta, instancia, modo, resolucion),
-  )) as [string, string, string];
-  const respuesta: RespuestaIngesta = { estado: estado as Estado, instancia };
-  if (reciboJson) respuesta.recibo = JSON.parse(reciboJson) as Recibo;
-  if (motivo) respuesta.motivo = motivo as MotivoRechazo;
-  respuesta.detalle = DETALLES[motivo || estado] ?? estado;
-  return respuesta;
-}
-
+/** Ejecuta el script y traduce su respuesta. Propaga errores de Redis. */
 export async function aplicarActa(
   redis: ConexionRedis,
   acta: Acta,
   instancia: string,
   modo: ModoAplicacion = 'jurado',
-  resolucion?: ResolucionContexto,
 ): Promise<RespuestaIngesta> {
-  return ejecutar(acta, instancia, modo, resolucion, (keys, args) =>
-    redis.script('aplicar_acta', keys, args),
+  const [estado, reciboJson, motivo] = await redis.script<[string, string, string]>(
+    'aplicar_acta',
+    clavesDeActa(acta),
+    argumentosDeActa(acta, instancia, modo),
   );
-}
-
-export async function aplicarActaEnCliente(
-  redis: RedisClient,
-  acta: Acta,
-  instancia: string,
-  resolucion: ResolucionContexto,
-): Promise<RespuestaIngesta> {
-  return ejecutar(acta, instancia, 'resolucion', resolucion, (keys, args) =>
-    redis.eval(fuenteResolucion, { keys, arguments: args }),
-  );
+  const r: RespuestaIngesta = { estado: estado as Estado, instancia };
+  if (reciboJson) r.recibo = JSON.parse(reciboJson) as Recibo;
+  if (motivo) r.motivo = motivo as MotivoRechazo;
+  r.detalle = DETALLES[motivo || estado] ?? estado;
+  return r;
 }

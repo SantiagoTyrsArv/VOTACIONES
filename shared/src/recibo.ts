@@ -57,7 +57,7 @@ export interface Recibo {
   acta: string;
   version: number;
   /** Estado con el que quedó la versión al registrarse. */
-  estado: typeof ESTADOS.REGISTRADA | typeof ESTADOS.DUDOSA_EN_VERIFICACION | typeof ESTADOS.RECHAZADA;
+  estado: typeof ESTADOS.REGISTRADA | typeof ESTADOS.DUDOSA_EN_VERIFICACION;
   idem: string;
   /** Hora de Redis (ms) en que se registró: común a las 8 instancias. */
   ts: number;
