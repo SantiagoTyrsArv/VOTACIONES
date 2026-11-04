@@ -22,9 +22,17 @@ export class RedisConnections {
     this.subscriber = this.commands.duplicate();
     this.blocking = this.commands.duplicate();
     for (const [name, client] of this.entries()) {
-      client.on('error', (error: Error) => this.logger.warn({ err: error.message }, `Redis (${name}) con error`));
-      client.on('reconnecting', () => this.logger.warn(`Redis (${name}) reconectando...`));
-      client.on('ready', () => this.logger.info(`Redis (${name}) listo`));
+      // Un solo aviso por caída: sin esto, cada reintento llenaría el log.
+      let reportedDown = false;
+      client.on('error', (error: Error) => {
+        if (reportedDown) return;
+        reportedDown = true;
+        this.logger.warn({ err: error.message || error.name }, `Redis (${name}) no disponible; reintentando en segundo plano`);
+      });
+      client.on('ready', () => {
+        reportedDown = false;
+        this.logger.info(`Redis (${name}) listo`);
+      });
     }
   }
 

@@ -4,3 +4,4 @@ export * from './redisKeys.js';
 export * from './messages/acta.js';
 export * from './messages/broadcast.js';
 export * from './messages/publicEvents.js';
+export * from './reconnectBackoff.js';
