@@ -1,0 +1,40 @@
+name: Persona C
+on:
+  push:
+    branches: [feature/persona-c]
+  pull_request:
+    paths:
+      [
+        'server/**',
+        'shared/**',
+        'web/**',
+        'tests/**',
+        'scripts/**',
+        'carga/**',
+        'deploy/**',
+        'package*.json',
+        'tsconfig*.json',
+        'Dockerfile',
+        '.github/workflows/persona-c.yml',
+      ]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6380:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s --health-timeout 2s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm audit --omit=dev
+      - run: npm run carga:plan
+      - run: npm run validate:deploy

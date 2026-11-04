@@ -1,0 +1,71 @@
+name: votaciones-c
+x-server: &server
+  image: votaciones-c:local
+  build: .
+  init: true
+  ulimits:
+    nofile: { soft: 65536, hard: 65536 }
+  environment: &environment
+    REDIS_URL: redis://redis:6379
+    DEMO_MODE: 'true'
+    EXPECTED_REPLICAS: '2'
+  depends_on:
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+  stop_grace_period: 10s
+services:
+  redis:
+    image: redis:7.4-alpine
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--appendfsync',
+        'everysec',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
+    ports: ['127.0.0.1:6379:6379']
+    volumes: ['redis-data:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      timeout: 2s
+      retries: 20
+    restart: unless-stopped
+  app1:
+    <<: *server
+    environment:
+      <<: *environment
+      INSTANCE_ID: c-local-1
+    ports: ['127.0.0.1:8081:3000']
+  app2:
+    <<: *server
+    environment:
+      <<: *environment
+      INSTANCE_ID: c-local-2
+    ports: ['127.0.0.1:8082:3000']
+  gateway:
+    image: nginx:1.28-alpine
+    ports: ['127.0.0.1:8080:80']
+    volumes:
+      [
+        './deploy/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro',
+        './deploy/nginx.conf:/etc/nginx/nginx.conf:ro',
+      ]
+    ulimits:
+      nofile: { soft: 131072, hard: 131072 }
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+  seed:
+    <<: *server
+    profiles: ['tools']
+    restart: 'no'
+    command: ['node', 'dist/scripts/seed.js']
+volumes:
+  redis-data:

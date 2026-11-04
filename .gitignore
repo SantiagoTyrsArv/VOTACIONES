@@ -1,0 +1,11 @@
+node_modules/
+dist/
+web-dist/
+.env
+.env.*
+!.env.example
+tmp/
+carga/results/
+carga/profile.json
+coverage/
+*.log
