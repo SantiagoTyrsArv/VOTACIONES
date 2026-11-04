@@ -31,7 +31,12 @@ export class IngestaModule implements AppModule {
 
   constructor(instancia = idDeReplica() ?? 'local') {
     this.resolucion = new ResolucionAtomica({ redis: () => this.redis, instancia });
-    this.jornada = new JornadaSimulada({ redis: () => this.redis, ingesta: () => this.servicio, instancia });
+    this.jornada = new JornadaSimulada({
+      redis: () => this.redis,
+      ingesta: () => this.servicio,
+      instancia,
+      habilitada: process.env.SIMULACION_HABILITADA === 'true',
+    });
   }
 
   async register(context: ModuleContext): Promise<void> {

@@ -31,6 +31,9 @@ param memoria string = '1Gi'
 @description('Modo demostración de C (credenciales demo-*). En la sustentación: false.')
 param demo bool = false
 
+@description('Jornada simulada activable desde la consola (RT-10). Escribe en los datos: solo para demostración académica.')
+param simulacion bool = true
+
 @secure()
 @description('Contraseña de Redis.')
 param redisPassword string
@@ -189,6 +192,7 @@ var entornoApp = [
   { name: 'METRICS_TOKEN', secretRef: 'metrics-token' }
   { name: 'AUDITOR_CREDENTIALS_JSON', secretRef: 'auditores' }
   { name: 'DEMO_MODE', value: string(demo) }
+  { name: 'SIMULACION_HABILITADA', value: string(simulacion) }
   { name: 'EXPECTED_REPLICAS', value: string(replicas) }
   { name: 'ALLOWED_ORIGINS', value: allowedOrigins }
   { name: 'HOST', value: '0.0.0.0' }

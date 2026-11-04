@@ -28,6 +28,7 @@ export interface PlatformSignals {
 }
 
 export interface SimulationControl {
+  readonly habilitada: boolean;
   estado(): Promise<unknown>;
   iniciar(o: {
     aceleracion: number;
@@ -135,7 +136,8 @@ async function registerVerification(
     };
   });
   const simulation = signals.simulation;
-  if (simulation) {
+  // Solo con SIMULACION_HABILITADA=true: sin la bandera las rutas no existen (404).
+  if (simulation?.habilitada) {
     const isCoordinator = (authorization?: string) =>
       credentialIdentity(bearer(authorization))?.role === 'coordinator';
     app.get('/api/demo/jornada', async (req, reply) => {

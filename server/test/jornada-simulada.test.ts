@@ -39,7 +39,9 @@ beforeAll(async () => {
     keyPrefix: '',
     log: false,
   };
+  process.env.SIMULACION_HABILITADA = 'true';
   ingesta = new IngestaModule('prueba-jornada');
+  delete process.env.SIMULACION_HABILITADA;
   const difusion = new DifusionModule();
   app = new Application(
     AppConfig.fromEnv({ PORT: '0', REDIS_URL: url, INSTANCE_ID: 'prueba-jornada', LOG_LEVEL: 'silent' }),
@@ -114,5 +116,13 @@ describe('RT-10 · repetir la jornada', () => {
     await esperar();
     const { porEstado } = (await (await api(COORD)).json()) as { porEstado: Record<string, number> };
     expect(Object.keys(porEstado).filter((k) => k !== 'YA_REGISTRADA' && k !== 'VERSION_OBSOLETA')).toEqual([]);
+  });
+});
+
+describe('RT-10 · bandera de habilitación', () => {
+  it('sin SIMULACION_HABILITADA la jornada se niega a iniciar', async () => {
+    const otra = new IngestaModule('sin-bandera');
+    expect(otra.jornada.habilitada).toBe(false);
+    expect(await otra.jornada.iniciar({ aceleracion: 60, reiniciar: true })).toEqual({ ok: false, motivo: 'DESHABILITADA' });
   });
 });

@@ -79,8 +79,18 @@ export class JornadaSimulada {
       ingesta: () => ServicioIngesta | null;
       instancia: string;
       geografia?: Geografia;
+      /**
+       * La jornada escribe en los acumulados reales y entra a la ingesta sin
+       * credencial de jurado: solo existe si se habilita a propósito
+       * (SIMULACION_HABILITADA=true), nunca con datos de una elección real.
+       */
+      habilitada: boolean;
     },
   ) {}
+
+  get habilitada(): boolean {
+    return this.op.habilitada;
+  }
 
   private get geografia(): Geografia {
     return this.op.geografia ?? GEOGRAFIA_DEFECTO;
@@ -131,6 +141,7 @@ export class JornadaSimulada {
   ): Promise<
     { ok: true; resumen: ReturnType<typeof resumenPlan> } | { ok: false; motivo: string }
   > {
+    if (!this.op.habilitada) return { ok: false, motivo: 'DESHABILITADA' };
     const r = this.conexion();
     const ingesta = this.op.ingesta();
     if (!ingesta) return { ok: false, motivo: 'INGESTA_NO_LISTA' };
