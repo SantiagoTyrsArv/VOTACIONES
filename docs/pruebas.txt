@@ -6,7 +6,7 @@ La consola permite revisar la cola, consultar presencia, tomar un caso con exclu
 
 Pruebas ejecutadas
 
-npm run check pasó: comprobación de tipos de servidor e interfaz, compilación y 14 pruebas, sin omisiones ni fallos. El registro completo está en evidence/check.txt. Se utilizó Node 22.23.3 y Redis 7.4.12 real en un contenedor Linux, puerto local 6380.
+La suite integrada tiene 53 pruebas: 28 del servidor de B, 8 de su página pública, 14 de C y 3 de integración. Pasaron sin omisiones. npm run check comprobó tipos, compilación y la suite conjunta; después se repitieron las pruebas afectadas por los ajustes de /whoami y del indicador de instancia. Los registros están en evidence/check-integracion.txt, evidence/test-integracion-final.txt y evidence/publico-integracion.txt. La imagen Docker también pasó tipos y compilación. Se utilizó Node 22.23.3 y Redis 7.4.12 real en un contenedor Linux, puerto local 6380.
 
 Se comprobó:
 
@@ -27,15 +27,15 @@ Se comprobó:
 
 Para probar la condición de 10 minutos se modificó la fecha del último movimiento del caso en el Redis de prueba. El aviso de 8 minutos se comprobó adelantando el reloj del navegador. No se presentan esas dos comprobaciones como esperas cronológicas de 8 o 10 minutos. La expiración de 30 s sí se esperó realmente.
 
-Entorno completo de C
+Entorno con B y C
 
-La imagen Docker se construyó y ejecutó con dos réplicas y Nginx. npm run smoke consultó ambas réplicas, enfrentó dos auditores y comprobó PENDING_A y RELEASED.
+La imagen Docker se construyó y ejecutó con dos réplicas y Nginx; cada proceso registra DifusionModule y VerificacionModule. npm run smoke consultó ambas réplicas, enfrentó dos auditores y comprobó PENDING_A y RELEASED.
 
-npm run test:browser usa Chrome headless con tres contextos independientes. Ana toma un caso desde 8081; Luis lo ve ocupado desde 8082; Coordinación consulta ambas réplicas a través de 8080. También se comprueban la resolución pendiente, el aviso de inactividad y la ausencia de desbordamiento horizontal a 390 px. Las capturas consola-verificacion.png, plataforma.png y consola-movil.png son del sistema ejecutado. Los datos son ejemplos, no actas electorales reales. El detalle de la ejecución está en evidence/browser.json.
+npm run test:browser usa Chrome headless con tres contextos independientes. Ana toma un caso desde 8081; Luis lo ve ocupado desde 8082; Coordinación consulta ambas réplicas a través de 8080. También se comprueban la resolución pendiente, el aviso de inactividad y la ausencia de desbordamiento horizontal a 390 px. Las capturas consola-verificacion.png, plataforma.png y consola-movil.png son del sistema ejecutado. Los datos son ejemplos, no actas electorales reales. Se abre además la página pública por SSE, WebSocket y polling; el tablero suma las conexiones públicas y de auditores. El detalle de la ejecución está en evidence/browser.json y publico-integrado.png.
 
-Se levantó además el entorno de ocho réplicas de deploy/compose.eight.yaml. Ochenta consultas a /whoami alcanzaron las ocho, y /api/metrics devolvió sus ocho muestras. Se conserva evidence/eight-replicas.json. Después se detuvo ese entorno adicional; la consola local de dos réplicas queda disponible.
+Se levantó además el entorno de ocho réplicas de deploy/compose.eight.yaml. Ochenta consultas a /whoami alcanzaron las ocho, y /api/metrics devolvió sus ocho muestras. La prueba integrada repitió 80 consultas a /whoami y 80 a /publico/poll: ambas alcanzaron las ocho réplicas. El tablero devolvió ocho muestras. Se conserva evidence/eight-integracion.json. Después se detuvo ese entorno adicional; la consola local de dos réplicas queda disponible.
 
-npm run smoke:chaos mató app1 con SIGKILL. app2 recuperó el caso en 32.171 ms y lo reasignó con un token mayor. Al pausar Redis, las dos réplicas respondieron 503 en /ready y 200 en /live. Un reinicio ordenado de Redis conservó el caso y el contador de cercado, que siguió en 8. evidence/chaos.json contiene esos resultados. Esa prueba solo debe ejecutarse sobre este entorno Compose de demostración; detiene y restaura sus contenedores.
+npm run smoke:chaos mató app1 con SIGKILL. app2 recuperó el caso en 31.902 ms y lo reasignó con un token mayor. Al pausar Redis, las dos réplicas respondieron 503 en /ready y 200 en /live. Un reinicio ordenado de Redis conservó el caso y el contador de cercado, que siguió en 17. evidence/chaos.json contiene esos resultados. Esa prueba solo debe ejecutarse sobre este entorno Compose de demostración; detiene y restaura sus contenedores.
 
 Carga medida, sin extrapolación
 
@@ -51,14 +51,20 @@ El generador de jornada produjo 6.400 originales, 3.520 antes del minuto 40, rá
 
 Configuración y dependencias
 
-npm run validate:deploy valida sin credenciales el grafo de Railway: ocho réplicas del servidor y un Redis independiente con volumen. Ambos archivos Compose pasaron docker compose config --quiet. npm audit no detectó vulnerabilidades en las dependencias instaladas; el resultado está en evidence/audit.json. El formato del código pasó npm run format:check.
+npm run validate:deploy valida sin credenciales el grafo de Railway: ocho réplicas del servidor y un Redis independiente con volumen. Ambos archivos Compose pasaron docker compose config --quiet. npm audit no detectó vulnerabilidades en las dependencias instaladas; el resultado actualizado está en evidence/audit-integracion.json. El formato del código pasó npm run format:check.
 
 Qué falta comprobar con el grupo
 
 A debe aceptar el contrato de casos y aplicar una resolución con validación de bloqueo, sesión, versión y fencing token dentro de su operación atómica. La protección del módulo real y sus reintentos tras una caída todavía no están acreditados.
 
-B debe incorporar sus transportes al mismo servidor y conectar los contadores de envíos, conexiones y latencia. A debe conectar el contador de aplicaciones reales. Falta comparar transportes con el mismo flujo electoral y medir la latencia acta-público.
+B ya comparte servidor y sus conexiones y envíos alimentan el tablero. A debe conectar el contador de aplicaciones reales y el origen temporal usado para medir la latencia electoral. Falta comparar transportes con el mismo flujo electoral y medir la latencia acta-público.
 
 Los scripts preparan 20.000 conexiones repartidas; esa carga completa no se ha ejecutado. También quedan el despliegue de ocho réplicas en la nube y la URL pública. La evidencia de ocho réplicas de esta entrega es local.
 
-Comandos para repetir las pruebas: README.md, plataforma.txt y ../carga/uso.txt. Los contratos siguen siendo propuestas en contratos.txt. La rama de C no se fusiona automáticamente con las de los compañeros ni con main.
+Comandos para repetir las pruebas: README.md, plataforma.txt y ../carga/uso.txt. Los contratos siguen siendo propuestas en contratos.txt. main se incorporó a la rama de C para resolver el PR; la fusión de C hacia main sigue pendiente de revisión del grupo.
+
+Pruebas conjuntas añadidas
+
+Se abrió un WebSocket público en una réplica y SSE en otra mientras dos auditores disputaban un caso. Se publicaron dos entradas sintéticas en el stream de un municipio, incluida una corrección de 100 a 90. Se comprobó la llegada de los datos, la recuperación del cursor en otra réplica, la lectura por polling y el recuento separado y total de conexiones en el tablero. No se ejecutó la ingesta electoral de A.
+
+Se arrancó el servidor sin acceso a Redis: /live siguió en 200, /ready y el polling respondieron 503, y C no confirmó escrituras. Al restablecer el acceso, B y C recuperaron el servicio. Se añadió también una regresión que comprueba que reiniciar el simulador público conserva st:verif y tot:mesa:*.

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { identitySchema, type Identity } from '../shared/contracts.js';
+import { identitySchema, type Identity } from '@votaciones/shared/verificacion';
 
 export type Config = {
   redisUrl: string;

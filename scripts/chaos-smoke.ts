@@ -75,7 +75,7 @@ try {
   await eventually(ready, (status) => status.every((s) => s === 200), 15000);
   const fenceKey = `demo:fence:caso:${item.id}`,
     before = await redis.get(fenceKey);
-  await redis.close();
+  await redis.quit();
   docker('restart', 'redis');
   await eventually(ready, (status) => status.every((s) => s === 200), 15000);
   await redis.connect();
@@ -91,5 +91,5 @@ try {
   clearInterval(keepB);
   a.close();
   b.close();
-  if (redis.isOpen) redis.destroy();
+  if (redis.isOpen) redis.disconnect();
 }

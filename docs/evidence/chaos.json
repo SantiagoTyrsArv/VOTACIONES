@@ -1,7 +1,7 @@
 {
-  "date": "2026-11-04T01:38:58.634Z",
+  "date": "2026-11-04T02:16:38.831Z",
   "scope": "Docker local, C, datos demo",
-  "recoveredAfterInstanceKillMs": 32171,
+  "recoveredAfterInstanceKillMs": 31902,
   "readyDuringRedisPause": [
     503,
     503
@@ -12,7 +12,7 @@
   ],
   "aofOrderedRestart": {
     "caseId": "E14-176-0042-03",
-    "fenceBefore": "8",
-    "fenceAfter": "8"
+    "fenceBefore": "17",
+    "fenceAfter": "17"
   }
 }

@@ -1,9 +1,13 @@
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildApp } from '../server/app.js';
-import { PendingAAdapter, caseFromActa } from '../server/integration.js';
+import { PendingAAdapter, caseFromActa } from '../server/src/verificacion/integration.js';
 import { actor, config, eventually, seed, sleep, TestClient, testPrefix } from './helpers.js';
-import { clientMessageSchema, IDLE_STOP_MS, IDLE_WARNING_MS } from '../shared/contracts.js';
+import {
+  clientMessageSchema,
+  IDLE_STOP_MS,
+  IDLE_WARNING_MS,
+} from '@votaciones/shared/verificacion';
 let first: Awaited<ReturnType<typeof buildApp>>, second: typeof first;
 let url1: string, url2: string;
 before(async () => {
@@ -294,7 +298,10 @@ test('HTTP y métricas: dos instancias identificables, datos reales y métricas 
   ] as const) {
     assert.equal((await fetch(url + '/live')).status, 200);
     assert.equal((await fetch(url + '/ready')).status, 200);
-    assert.equal((await (await fetch(url + '/whoami')).json()).instance, instance);
+    const identity = await (await fetch(url + '/whoami')).json();
+    assert.equal(identity.instance, instance);
+    assert.equal(identity.demo, true);
+    assert.equal(identity.pid, process.pid);
   }
   assert.equal((await fetch(url1 + '/api/state')).status, 401);
   assert.equal(

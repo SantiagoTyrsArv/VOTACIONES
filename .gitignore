@@ -9,3 +9,8 @@ carga/results/
 carga/profile.json
 coverage/
 *.log
+
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+carga/resultados/
